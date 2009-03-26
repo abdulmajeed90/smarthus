@@ -3,46 +3,156 @@
 #include "global.h"
 #include "uart.h"
 #include <avr/interrupt.h>	// include interrupt support
-//#include "timer.h"		// include timer function library (timing, PWM, etc)
-#include "i2c.h"		// include i2c support
-#include "ds1631.h"		// include DS1631 support
+#include "i2c.h"			// include i2c support
+#include "ds1631.h"			// include DS1631 support
 #include <util/delay.h>
 #include <string.h>
 #include <stdio.h>
-
-
+#define NAME "Router1"		//Navnet Router1 blir definert som NAME
 #define BAUD 9600
 
+int i=0;
 char temp[8];
+int counter=0;
 void ds1631init(void);
 void ds1631getTemp(void);
+void compare(void);
+void sendPacket(void);
+void readtobuffer(void);
+unsigned char buffer1[10];
 FILE uart_str = FDEV_SETUP_STREAM(uartSendByte, uartGetByte, _FDEV_SETUP_RW);
+
+
+///////////////////////////////////////////////////////////////////////////////////
+// DESCRIPTION: To read incomming data from RS232
+//				
+// ARGUMENTS:	
+//
+// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+//////////////////////////////////////////////////////////////////////////////////
+
+
+void readtobuffer(void)
+{
+	if (artReceuiveByte(&buffer1[counter]))
+	{
+		counter++;
+		if (counter>=10)
+		{
+			counter=0;
+			compare();
+		}
+	}
+
+
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+// DESCRIPTION: TO compare incomming data against the moduls name   
+//				
+// ARGUMENTS:	
+//
+// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+//////////////////////////////////////////////////////////////////////////////////	
+
+	
+void compare(void)
+{
+
+	if (strncmp(buffer1,NAME,7)==0)
+		{
+			if((buffer1[8]=='o')&&(buffer1[9]=='n'))
+			{
+                PORTB |=1<<1;
+                ds1631getTemp();
+                sendPacket();
+            }
+			else if((buffer1[8]=='o')&&(buffer1[9]=='f'))
+			{
+                PORTB &=~(1<<1);
+                ds1631getTemp();
+                sendPacket();
+			}
+			else if((buffer1[8]=='n')&&(buffer1[9]=='c'))
+            {
+                ds1631getTemp();
+				sendPacket();
+            }
+            
+		}
+	
+	else
+	{
+		printf ("Ingen gyldig ruter\n\r");
+		return;
+	}	
+
+
+///////////////////////////////////////////////////////////////////////////////////
+// DESCRIPTION:  TO transmit Routername, status and temperature back to main modul  
+//				
+// ARGUMENTS:	
+//
+// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+//////////////////////////////////////////////////////////////////////////////////
+
+
+}
+void sendPacket(void)
+{
+    char status[3];
+    printf(NAME);
+    if(PINB&(1<<PINB1)) 
+    sprintf(status,"on");
+    
+    else
+		sprintf(status,"of");
+		status[1]='f';        
+     
+		printf("_");
+		printf(status);
+		printf("_");
+		printf(temp);
+}
+
+
+///////////////////////////////////////////////////////////////////////////////////
+// DESCRIPTION: Main Structure    
+//				
+// ARGUMENTS:	
+//
+// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+//////////////////////////////////////////////////////////////////////////////////
+
 
 int main(void)
 {
 	int vent=2000;
 	CLKPR=0x80;
 	CLKPR=0x00; //Hvorfor trengs dette???
-	uartInit();
+	DDRB=0xff; //portB er utgang
+    uartInit();
 	uartSetBaudRate(BAUD);
-	//rprintfInit(uartSendByte);
 	stdout = stdin = &uart_str;
-	// initialize the timer system
-	//timerInit();
-	printf("\r\nWelcome to DS6131 test!\r\n");
-	printf("hei\r\n");
-	
 	ds1631init();
+	
 	while(1)
 	{
-		ds1631getTemp();
-		printf(temp);
-		printf("\r\n");
+		readtobuffer();
 	}
-	
 	return 0;
 	
 }
+
+///////////////////////////////////////////////////////////////////////////////////
+// DESCRIPTION: 
+//				
+// ARGUMENTS:	
+//
+// MADE BY:		Jon Ove Storhaug 26.03.2009				
+//////////////////////////////////////////////////////////////////////////////////
+
 void ds1631init(void)
 {
 	
@@ -73,6 +183,15 @@ void ds1631init(void)
 
 	
 }
+
+///////////////////////////////////////////////////////////////////////////////////
+// DESCRIPTION: 
+//
+// ARGUMENTS:	
+//
+// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+//////////////////////////////////////////////////////////////////////////////////
+
 void ds1631getTemp(void)
 {
 	s16 T=0;
@@ -84,9 +203,11 @@ void ds1631getTemp(void)
 	//while(!(ds1631GetConfig(DS1631_I2C_ADDR) & DS1631_CONFIG_DONE));
 	// 12-bit conversion are only suppored to take this long
 	//timerPause(750);
-	_delay_ms(600);
 	// read temp
 	T = ds1631ReadTemp(DS1631_I2C_ADDR);
 	// Print the formatted temperature reading
 	sprintf(temp,"%d.%d", T>>8, (10*((T&0x00FF)))/256);
+    printf("\n\r");
+    printf(temp);
+    printf("\n\r");
 }
