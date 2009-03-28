@@ -28,7 +28,7 @@ FILE uart_str = FDEV_SETUP_STREAM(uartSendByte, uartGetByte, _FDEV_SETUP_RW);
 //				
 // ARGUMENTS:	
 //
-// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+// MADE BY:		Jon Ove Storhaug, AsbjÃ¸rn Tveito  26.03.2009				
 //////////////////////////////////////////////////////////////////////////////////
 
 
@@ -53,7 +53,7 @@ void readtobuffer(void)
 //				
 // ARGUMENTS:	
 //
-// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+// MADE BY:		Jon Ove Storhaug, AsbjÃ¸rn Tveito  26.03.2009				
 //////////////////////////////////////////////////////////////////////////////////	
 
 	
@@ -94,7 +94,7 @@ void compare(void)
 //				
 // ARGUMENTS:	
 //
-// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+// MADE BY:		Jon Ove Storhaug, AsbjÃ¸rn Tveito  26.03.2009				
 //////////////////////////////////////////////////////////////////////////////////
 
 
@@ -120,7 +120,7 @@ void sendPacket(void)
 //				
 // ARGUMENTS:	
 //
-// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+// MADE BY:		Jon Ove Storhaug, AsbjÃ¸rn Tveito  26.03.2009				
 //////////////////////////////////////////////////////////////////////////////////
 
 
@@ -187,7 +187,7 @@ void ds1631init(void)
 //
 // ARGUMENTS:	
 //
-// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+// MADE BY:		Jon Ove Storhaug  26.03.2009				
 //////////////////////////////////////////////////////////////////////////////////
 
 void ds1631getTemp(void)
