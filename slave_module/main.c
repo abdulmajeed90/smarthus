@@ -34,7 +34,7 @@ FILE uart_str = FDEV_SETUP_STREAM(uartSendByte, uartGetByte, _FDEV_SETUP_RW);
 
 void readtobuffer(void)
 {
-	if (artReceuiveByte(&buffer1[counter]))
+	if (uartReceiveByte(&buffer1[counter]))
 	{
 		counter++;
 		if (counter>=10)
@@ -84,7 +84,7 @@ void compare(void)
 	
 	else
 	{
-		printf ("Ingen gyldig ruter\n\r");
+		printf ("ERROR");
 		return;
 	}	
 
@@ -105,15 +105,13 @@ void sendPacket(void)
     printf(NAME);
     if(PINB&(1<<PINB1)) 
     sprintf(status,"on");
-    
     else
 		sprintf(status,"of");
-		status[1]='f';        
-     
-		printf("_");
-		printf(status);
-		printf("_");
-		printf(temp);
+ 
+	printf("_");
+	printf(status);
+	printf("_");
+	printf(temp);
 }
 
 
@@ -130,7 +128,7 @@ int main(void)
 {
 	int vent=2000;
 	CLKPR=0x80;
-	CLKPR=0x00; //Hvorfor trengs dette???
+	CLKPR=0x00;
 	DDRB=0xff; //portB er utgang
     uartInit();
 	uartSetBaudRate(BAUD);
@@ -162,15 +160,15 @@ void ds1631init(void)
 	i2cSetBitrate(100);
 
 	// initialize
-	if(ds1631Init(DS1631_I2C_ADDR))
-	{
-		printf("DS1631 detected and initialized!\r\n");
-	}
-	else
-	{
-		printf("Cannot detect DS1631!\r\n");
-		return;
-	}
+	//if(ds1631Init(DS1631_I2C_ADDR))
+	//{
+	//	printf("DS1631 detected and initialized!\r\n");
+	//}
+	//else
+	//{
+	//	printf("Cannot detect DS1631!\r\n");
+	//	return;
+	//}
 	
 	// set config
 	ds1631SetConfig(DS1631_I2C_ADDR, 0x0F);
@@ -178,8 +176,8 @@ void ds1631init(void)
 	ds1631SetTH(DS1631_I2C_ADDR, 35<<8);
 	ds1631SetTL(DS1631_I2C_ADDR, 30<<8);
 	// read them back for verification
-	printf("TH is set to: %d\r\n",ds1631GetTH(DS1631_I2C_ADDR)>>8);
-	printf("TL is set to: %d\r\n",ds1631GetTL(DS1631_I2C_ADDR)>>8);
+	//printf("TH is set to: %d\r\n",ds1631GetTH(DS1631_I2C_ADDR)>>8);
+	//printf("TL is set to: %d\r\n",ds1631GetTL(DS1631_I2C_ADDR)>>8);
 
 	
 }
@@ -194,20 +192,16 @@ void ds1631init(void)
 
 void ds1631getTemp(void)
 {
-	s16 T=0;
-	
+	s16 T=0;	
 	// start convert
 	ds1631StartConvert(DS1631_I2C_ADDR);
 	// wait until done
 	// this works but seems to take forever (5-10 seconds)
 	//while(!(ds1631GetConfig(DS1631_I2C_ADDR) & DS1631_CONFIG_DONE));
 	// 12-bit conversion are only suppored to take this long
-	//timerPause(750);
-	// read temp
+	_delay_ms(750);
+	// Read temp
 	T = ds1631ReadTemp(DS1631_I2C_ADDR);
-	// Print the formatted temperature reading
+	// Insert the formatted temperature reading in the string temp 
 	sprintf(temp,"%d.%d", T>>8, (10*((T&0x00FF)))/256);
-    printf("\n\r");
-    printf(temp);
-    printf("\n\r");
 }
