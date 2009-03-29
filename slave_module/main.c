@@ -8,23 +8,56 @@
 #include <util/delay.h>
 #include <string.h>
 #include <stdio.h>
-#define NAME "Router1"		//Navnet Router1 blir definert som NAME
+//#define NAME "Router1"		//Navnet Router1 blir definert som NAME
 #define BAUD 9600
+
+void compare(void);
+void sendPacket(void);
+void readtobuffer(void);
+void XBeeGetName(void);
+void ds1631init(void);
+void ds1631getTemp(void);
 
 int i=0;
 char temp[8];
 int counter=0;
-void ds1631init(void);
-void ds1631getTemp(void);
-void compare(void);
-void sendPacket(void);
-void readtobuffer(void);
-unsigned char buffer1[10];
+char buffer1[10];
+char NAME[10];
 FILE uart_str = FDEV_SETUP_STREAM(uartSendByte, uartGetByte, _FDEV_SETUP_RW);
+
+///////////////////////////////////////////////////////////////////////////////////
+// DESCRIPTION: Main
+//				
+// ARGUMENTS:	
+//
+// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+//////////////////////////////////////////////////////////////////////////////////
+
+
+int main(void)
+{
+	CLKPR=0x80;
+	CLKPR=0x00;
+	DDRB=0xff; //portB er utgang
+    uartInit();
+	uartSetBaudRate(BAUD);
+	stdout = stdin = &uart_str;
+	ds1631init();
+	XBeeGetName();
+		
+	while(1)
+	{
+		readtobuffer();
+	}
+	return 0;	
+}
+
+
+
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-// DESCRIPTION: To read incomming data from RS232
+// DESCRIPTION: To read incomming data from Main module
 //				
 // ARGUMENTS:	
 //
@@ -49,7 +82,7 @@ void readtobuffer(void)
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-// DESCRIPTION: TO compare incomming data against the moduls name   
+// DESCRIPTION: TO compare incomming data against the modules name   
 //				
 // ARGUMENTS:	
 //
@@ -90,7 +123,7 @@ void compare(void)
 
 
 ///////////////////////////////////////////////////////////////////////////////////
-// DESCRIPTION:  TO transmit Routername, status and temperature back to main modul  
+// DESCRIPTION:  TO transmit name, status and temperature back to Main module  
 //				
 // ARGUMENTS:	
 //
@@ -113,38 +146,66 @@ void sendPacket(void)
 	printf("_");
 	printf(temp);
 }
-
-
 ///////////////////////////////////////////////////////////////////////////////////
-// DESCRIPTION: Main Structure    
-//				
+// DESCRIPTION: The XBee's name is read and saved in the global variable NAME
+//
 // ARGUMENTS:	
 //
-// MADE BY:		Jon Ove Storhaug, Asbjørn Tveito  26.03.2009				
+// MADE BY:		Jon Ove Storhaug  29.03.2009				
 //////////////////////////////////////////////////////////////////////////////////
 
-
-int main(void)
+void XBeeGetName(void)
 {
-	int vent=2000;
-	CLKPR=0x80;
-	CLKPR=0x00;
-	DDRB=0xff; //portB er utgang
-    uartInit();
-	uartSetBaudRate(BAUD);
-	stdout = stdin = &uart_str;
-	ds1631init();
-	
-	while(1)
+	unsigned char status[4];
+	printf("+++"); // Enter command mode
+	int i=0;
+	// Check if "OK\r" is received to verify command mode
+	while(i<3) 
 	{
-		readtobuffer();
+		if (uartReceiveByte(&status[i]))
+			i++;
 	}
-	return 0;
-	
+	if(!(status[0]=='O') && !(status[1]=='K'))
+	{
+		printf("atcn\r"); // Exit command mode
+		_delay_ms(1100);
+		printf("ERROR"); // Send ERROR message
+	}
+	else 
+		_delay_ms(1100);
+		printf("atni\r"); // Ask for XBee's name
+	i=0;
+	// Receive the name
+	while(i!=20)
+	{
+		if (uartReceiveByte(&NAME[i]))
+		{
+			if (NAME[i]=='\r')
+			{
+				NAME[i]='\0';
+				i=20;
+			}
+			else
+				i++;
+		}
+	}
+	printf("atcn\r"); // Exit command mode
+	i=0;
+	// Check if "OK\r" is received to verify the exit from command mode
+	while(i<3)
+	{
+		if (uartReceiveByte(&status[i]))
+			i++;
+	}
+	if(!(status[0]=='O') && !(status[1]=='K'))
+	{
+		printf("atcn\r"); // Exit command mode
+		_delay_ms(1100);
+		printf("ERROR"); // Send ERROR message
+	}
 }
-
 ///////////////////////////////////////////////////////////////////////////////////
-// DESCRIPTION: 
+// DESCRIPTION: Initialize the ds1631/ds1621 temperature sensor 
 //				
 // ARGUMENTS:	
 //
@@ -183,8 +244,8 @@ void ds1631init(void)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-// DESCRIPTION: 
-//
+// DESCRIPTION: Gets the temperature from DS1631/DS1621 and saves it in the 
+//              string named temp 
 // ARGUMENTS:	
 //
 // MADE BY:		Jon Ove Storhaug  26.03.2009				
