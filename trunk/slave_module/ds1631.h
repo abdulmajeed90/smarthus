@@ -27,6 +27,8 @@
 ///		- 8 to 12-bit signed output
 ///		- thermostat functionality
 //
+// NOTE2: bug in ds1631getConfig corrected, and temp flag management added
+//
 // This code is distributed under the GNU Public License
 //		which can be found at http://www.gnu.org/licenses/gpl.txt
 //
@@ -91,6 +93,18 @@ s16 ds1631GetTH(u08 i2cAddr);
 
 //! Get the Temp-Low threshold
 s16 ds1631GetTL(u08 i2cAddr);
+
+// Clear the Temp-High Flag
+void ds1631ClearTHF(u08 i2cAddr);
+
+// Get the Temp-High Flag
+s16 ds1631GetTHF(u08 i2cAddr);
+
+// Clear the Temp-Low Flag
+void ds1631ClearTLF(u08 i2cAddr);
+
+// Get the Temp-Low Flag
+s16 ds1631GetTLF(u08 i2cAddr);
 
 void ds1631WriteTempReg(u08 i2cAddr, u08 cmd, s16 value);
 s16 ds1631ReadTempReg(u08 i2cAddr, u08 cmd);
