@@ -258,9 +258,9 @@ void ds1631getTemp(void)
 	ds1631StartConvert(DS1631_I2C_ADDR);
 	// wait until done
 	// this works but seems to take forever (5-10 seconds)
-	//while(!(ds1631GetConfig(DS1631_I2C_ADDR) & DS1631_CONFIG_DONE));
+	while(!(ds1631GetConfig(DS1631_I2C_ADDR) & DS1631_CONFIG_DONE));
 	// 12-bit conversion are only suppored to take this long
-	_delay_ms(750);
+	//_delay_ms(750);
 	// Read temp
 	T = ds1631ReadTemp(DS1631_I2C_ADDR);
 	// Insert the formatted temperature reading in the string temp 
