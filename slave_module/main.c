@@ -42,6 +42,7 @@ int main(void)
     uartInit();
 	uartSetBaudRate(BAUD);
 	stdout = stdin = &uart_str;
+	_delay_ms(2000);
 	ds1631init();
 	XBeeGetName();
 		
@@ -157,6 +158,7 @@ void sendPacket(void)
 void XBeeGetName(void)
 {
 	unsigned char status[4];
+	uartFlushReceiveBuffer();
 	printf("+++"); // Enter command mode
 	int i=0;
 	// Check if "OK\r" is received to verify command mode
@@ -167,6 +169,7 @@ void XBeeGetName(void)
 	}
 	if(!(status[0]=='O') && !(status[1]=='K'))
 	{
+		_delay_ms(1100);
 		printf("atcn\r"); // Exit command mode
 		_delay_ms(1100);
 		printf("ERROR"); // Send ERROR message
