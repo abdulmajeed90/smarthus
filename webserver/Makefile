@@ -1,133 +1,235 @@
-# makefile, written by guido socher
-#MCU=atmega168
-#DUDECPUTYPE=m168
-MCU=atmega328p
-DUDECPUTYPE=m328
-#
-LOADCMD=avrdude
-LOADARG=-p $(DUDECPUTYPE) -c dt006 -e -U flash:w:
-#
-CC=avr-gcc
-OBJCOPY=avr-objcopy
-# optimize for size:
-CFLAGS=-g -mmcu=$(MCU) -Wall -Wstrict-prototypes -Os -mcall-prologues
-#-------------------
-.PHONY: test0 test1 test2 all
-#
-all: test0.hex test1.hex test2.hex test_readSiliconRev.hex eth_rem_dev_tcp.hex
-	@echo "done"
-#
-test0: test0.hex
-	@echo "done"
-#
-test1: test1.hex 
-	@echo "done"
-#
-test_readSiliconRev: test_readSiliconRev.hex
-	@echo "done"
-#
-test2: test2.hex
-	@echo "done"
-#
-#-------------------
-help: 
-	@echo "Usage: make all|test0.hex|test1.hex|test2.hex|load|load_pre|load_test0|load_test1|load_test2|rdfuses"
-	@echo "or"
-	@echo "Usage: make clean"
-	@echo " "
-	@echo "For new hardware with clock from enc38j60: make fuse"
-#-------------------
-pre: eth_rem_dev_tcp.hex
-	cp eth_rem_dev_tcp.hex eth_rem_dev_tcp_pre.hex
-eth_rem_dev_tcp.hex : eth_rem_dev_tcp.out 
-	$(OBJCOPY) -R .eeprom -O ihex eth_rem_dev_tcp.out eth_rem_dev_tcp.hex 
-	avr-size eth_rem_dev_tcp.out
-	@echo " "
-	@echo "Expl.: data=initialized data, bss=uninitialized data, text=code"
-	@echo " "
+# Hey Emacs, this is a -*- makefile -*-
 
-eth_rem_dev_tcp.out : main.o ip_arp_udp_tcp.o enc28j60.o 
-	$(CC) $(CFLAGS) -o eth_rem_dev_tcp.out -Wl,-Map,eth_rem_dev_tcp.map main.o ip_arp_udp_tcp.o enc28j60.o
-enc28j60.o : enc28j60.c avr_compat.h timeout.h enc28j60.h
-	$(CC) $(CFLAGS) -Os -c enc28j60.c
-ip_arp_udp_tcp.o : ip_arp_udp_tcp.c net.h avr_compat.h enc28j60.h
-	$(CC) $(CFLAGS) -Os -c ip_arp_udp_tcp.c
-main.o : main.c ip_arp_udp_tcp.h avr_compat.h enc28j60.h timeout.h net.h
-	$(CC) $(CFLAGS) -Os -c main.c
-#------------------
-test0.hex : test0.out 
-	$(OBJCOPY) -R .eeprom -O ihex test0.out test0.hex 
-	avr-size test0.out
-	@echo " "
-	@echo "Expl.: data=initialized data, bss=uninitialized data, text=code"
-	@echo " "
-test0.out : test0.o 
-	$(CC) $(CFLAGS) -o test0.out -Wl,-Map,test0.map test0.o 
-test0.o : test0.c 
-	$(CC) $(CFLAGS) -Os -c test0.c
-#------------------
-test2.hex : test2.out 
-	$(OBJCOPY) -R .eeprom -O ihex test2.out test2.hex 
-	avr-size test2.out
-	@echo " "
-	@echo "Expl.: data=initialized data, bss=uninitialized data, text=code"
-	@echo " "
-test2.out : test2.o enc28j60.o ip_arp_udp_tcp.o
-	$(CC) $(CFLAGS) -o test2.out -Wl,-Map,test2.map test2.o enc28j60.o ip_arp_udp_tcp.o
-test2.o : test2.c ip_arp_udp_tcp.h avr_compat.h enc28j60.h timeout.h net.h
-	$(CC) $(CFLAGS) -Os -c test2.c
-#------------------
-test1.hex : test1.out 
-	$(OBJCOPY) -R .eeprom -O ihex test1.out test1.hex 
-	avr-size test1.out
-	@echo " "
-	@echo "Expl.: data=initialized data, bss=uninitialized data, text=code"
-	@echo " "
-test1.out : test1.o enc28j60.o ip_arp_udp_tcp.o
-	$(CC) $(CFLAGS) -o test1.out -Wl,-Map,test1.map test1.o enc28j60.o ip_arp_udp_tcp.o
-test1.o : test1.c ip_arp_udp_tcp.h avr_compat.h enc28j60.h timeout.h net.h
-	$(CC) $(CFLAGS) -Os -c test1.c
-#------------------
-test_readSiliconRev.hex : test_readSiliconRev.out 
-	$(OBJCOPY) -R .eeprom -O ihex test_readSiliconRev.out test_readSiliconRev.hex 
-	avr-size test_readSiliconRev.out
-	@echo " "
-	@echo "Expl.: data=initialized data, bss=uninitialized data, text=code"
-	@echo " "
-test_readSiliconRev.out : test_readSiliconRev.o enc28j60.o ip_arp_udp_tcp.o
-	$(CC) $(CFLAGS) -o test_readSiliconRev.out -Wl,-Map,test_readSiliconRev.map test_readSiliconRev.o enc28j60.o ip_arp_udp_tcp.o
-test_readSiliconRev.o : test_readSiliconRev.c ip_arp_udp_tcp.h avr_compat.h enc28j60.h timeout.h net.h
-	$(CC) $(CFLAGS) -Os -c test_readSiliconRev.c
-#------------------
-#------------------
-load_test2: test2.hex
-	$(LOADCMD) $(LOADARG)test2.hex
-#
-load_readSiliconRev: test_readSiliconRev.hex
-	$(LOADCMD) $(LOADARG)test_readSiliconRev.hex
-#
-load_test1: test1.hex
-	$(LOADCMD) $(LOADARG)test1.hex
-#
-load_test0: test0.hex
-	$(LOADCMD) $(LOADARG)test0.hex
-#------------------
-load: eth_rem_dev_tcp.hex
-	$(LOADCMD) $(LOADARG)eth_rem_dev_tcp.hex
-#
-load_pre: eth_rem_dev_tcp_pre.hex
-	$(LOADCMD) $(LOADARG)eth_rem_dev_tcp_pre.hex
-#-------------------
-# Check this with make rdfuses
-rdfuses:
-	avrdude -p $(DUDECPUTYPE) -c dt006 -v -q
-#
-fuse:
-	@echo "warning: run this command only if you have an external clock on xtal1"
-	@echo "The is the last chance to stop. Press crtl-C to abort"
-	@sleep 2
-	avrdude -p  $(DUDECPUTYPE) -c dt006 -u -v -U lfuse:w:0x60:m
-#-------------------
+# AVR-GCC Makefile template, derived from the WinAVR template (which
+# is public domain), believed to be neutral to any flavor of "make"
+# (GNU make, BSD make, SysV make)
+
+
+MCU = atmega168
+FORMAT = ihex
+TARGET = main
+SRC = $(TARGET).c
+#SRC += uart.c
+SRC += ip_arp_udp_tcp.c
+SRC += enc28j60.c
+#SRC += webcom.c
+
+
+
+ASRC = 
+OPT = s
+
+# Name of this Makefile (used for "make depend").
+MAKEFILE = Makefile
+
+# Debugging format.
+# Native formats for AVR-GCC's -g are stabs [default], or dwarf-2.
+# AVR (extended) COFF requires stabs, plus an avr-objcopy run.
+DEBUG = stabs
+
+# Compiler flag to set the C Standard level.
+# c89   - "ANSI" C
+# gnu89 - c89 plus GCC extensions
+# c99   - ISO C99 standard (not yet fully implemented)
+# gnu99 - c99 plus GCC extensions
+CSTANDARD = -std=gnu99
+
+# Place -D or -U options here
+CDEFS =
+
+# Place -I options here
+CINCS =
+
+
+CDEBUG = -g$(DEBUG)
+CWARN = -Wall -Wstrict-prototypes
+CTUNING = -funsigned-char -funsigned-bitfields -fpack-struct -fshort-enums
+#CEXTRA = -Wa,-adhlns=$(<:.c=.lst)
+CFLAGS = $(CDEBUG) $(CDEFS) $(CINCS) -O$(OPT) $(CWARN) $(CSTANDARD) $(CEXTRA)
+
+
+#ASFLAGS = -Wa,-adhlns=$(<:.S=.lst),-gstabs 
+
+
+#Additional libraries.
+
+# Minimalistic printf version
+PRINTF_LIB_MIN = -Wl,-u,vfprintf -lprintf_min
+
+# Floating point printf version (requires MATH_LIB = -lm below)
+PRINTF_LIB_FLOAT = -Wl,-u,vfprintf -lprintf_flt
+
+PRINTF_LIB = 
+
+# Minimalistic scanf version
+SCANF_LIB_MIN = -Wl,-u,vfscanf -lscanf_min
+
+# Floating point + %[ scanf version (requires MATH_LIB = -lm below)
+SCANF_LIB_FLOAT = -Wl,-u,vfscanf -lscanf_flt
+
+SCANF_LIB = 
+
+MATH_LIB = -lm
+
+# External memory options
+
+# 64 KB of external RAM, starting after internal RAM (ATmega128!),
+# used for variables (.data/.bss) and heap (malloc()).
+#EXTMEMOPTS = -Wl,--section-start,.data=0x801100,--defsym=__heap_end=0x80ffff
+
+# 64 KB of external RAM, starting after internal RAM (ATmega128!),
+# only used for heap (malloc()).
+#EXTMEMOPTS = -Wl,--defsym=__heap_start=0x801100,--defsym=__heap_end=0x80ffff
+
+EXTMEMOPTS =
+
+#LDMAP = $(LDFLAGS) -Wl,-Map=$(TARGET).map,--cref
+LDFLAGS = $(EXTMEMOPTS) $(LDMAP) $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
+
+
+# Programming support using avrdude. Settings and variables.
+
+#AVRDUDE_PROGRAMMER = dt006
+#AVRDUDE_PORT = /dev/parport0
+
+AVRDUDE_PROGRAMMER = stk500
+AVRDUDE_PORT = /dev/ttyS0
+
+AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
+#AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
+
+
+# Uncomment the following if you want avrdude's erase cycle counter.
+# Note that this counter needs to be initialized first using -Yn,
+# see avrdude manual.
+#AVRDUDE_ERASE_COUNTER = -y
+
+# Uncomment the following if you do /not/ wish a verification to be
+# performed after programming the device.
+#AVRDUDE_NO_VERIFY = -V
+
+# Increase verbosity level.  Please use this when submitting bug
+# reports about avrdude. See <http://savannah.nongnu.org/projects/avrdude> 
+# to submit bug reports.
+#AVRDUDE_VERBOSE = -v -v
+
+AVRDUDE_BASIC = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_FLAGS = $(AVRDUDE_BASIC) $(AVRDUDE_NO_VERIFY) $(AVRDUDE_VERBOSE) $(AVRDUDE_ERASE_COUNTER)
+
+
+CC = avr-gcc
+OBJCOPY = avr-objcopy
+OBJDUMP = avr-objdump
+SIZE = avr-size
+NM = avr-nm
+AVRDUDE = avrdude
+REMOVE = rm -f
+MV = mv -f
+
+# Define all object files.
+OBJ = $(SRC:.c=.o) $(ASRC:.S=.o) 
+
+# Define all listing files.
+LST = $(ASRC:.S=.lst) $(SRC:.c=.lst)
+
+# Combine all necessary flags and optional flags.
+# Add target processor to flags.
+ALL_CFLAGS = -mmcu=$(MCU) -I. $(CFLAGS)
+ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
+
+
+# Default target.
+all: build
+
+build: elf hex
+
+elf: $(TARGET).elf
+hex: $(TARGET).hex
+#eep: $(TARGET).eep
+lss: $(TARGET).lss 
+sym: $(TARGET).sym
+
+
+# Program the device.  
+program: $(TARGET).hex $(TARGET).eep
+	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
+
+
+
+
+# Convert ELF to COFF for use in debugging / simulating in AVR Studio or VMLAB.
+COFFCONVERT=$(OBJCOPY) --debugging \
+--change-section-address .data-0x800000 \
+--change-section-address .bss-0x800000 \
+--change-section-address .noinit-0x800000 \
+--change-section-address .eeprom-0x810000 
+
+
+coff: $(TARGET).elf
+	$(COFFCONVERT) -O coff-avr $(TARGET).elf $(TARGET).cof
+
+
+extcoff: $(TARGET).elf
+	$(COFFCONVERT) -O coff-ext-avr $(TARGET).elf $(TARGET).cof
+
+
+.SUFFIXES: .elf .hex .eep .lss .sym
+
+.elf.hex:
+	$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
+
+.elf.eep:
+	-$(OBJCOPY) -j .eeprom --set-section-flags=.eeprom="alloc,load" \
+	--change-section-lma .eeprom=0 -O $(FORMAT) $< $@
+
+# Create extended listing file from ELF output file.
+.elf.lss:
+	$(OBJDUMP) -h -S $< > $@
+
+# Create a symbol table from ELF output file.
+.elf.sym:
+	$(NM) -n $< > $@
+
+
+
+# Link: create ELF output file from object files.
+$(TARGET).elf: $(OBJ)
+	$(CC) $(ALL_CFLAGS) $(OBJ) --output $@ $(LDFLAGS)
+
+
+# Compile: create object files from C source files.
+.c.o:
+	$(CC) -c $(ALL_CFLAGS) $< -o $@ 
+
+
+# Compile: create assembler files from C source files.
+.c.s:
+	$(CC) -S $(ALL_CFLAGS) $< -o $@
+
+
+# Assemble: create object files from assembler source files.
+.S.o:
+	$(CC) -c $(ALL_ASFLAGS) $< -o $@
+
+
+
+# Target: clean project.
 clean:
-	rm -f *.o *.map *.out test*.hex eth_rem_dev_tcp.hex
-#-------------------
+	$(REMOVE) $(TARGET).hex $(TARGET).eep $(TARGET).cof $(TARGET).elf \
+	$(TARGET).map $(TARGET).sym $(TARGET).lss \
+	$(OBJ) $(LST) $(SRC:.c=.s) $(SRC:.c=.d)
+
+depend:
+	if grep '^# DO NOT DELETE' $(MAKEFILE) >/dev/null; \
+	then \
+		sed -e '/^# DO NOT DELETE/,$$d' $(MAKEFILE) > \
+			$(MAKEFILE).$$$$ && \
+		$(MV) $(MAKEFILE).$$$$ $(MAKEFILE); \
+	fi
+	echo '# DO NOT DELETE THIS LINE -- make depend depends on it.' \
+		>> $(MAKEFILE); \
+	$(CC) -M -mmcu=$(MCU) $(CDEFS) $(CINCS) $(SRC) $(ASRC) >> $(MAKEFILE)
+
+.PHONY:	all build elf hex eep lss sym program coff extcoff clean depend
+
+
