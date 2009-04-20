@@ -5,11 +5,11 @@
 # (GNU make, BSD make, SysV make)
 
 
-MCU = atmega328p
+MCU = atmega168
 FORMAT = ihex
 TARGET = main
 SRC = $(TARGET).c
-SRC += uart.c
+SRC += uart2.c
 SRC += ip_arp_udp_tcp.c
 SRC += enc28j60.c
 SRC += buffer.c
