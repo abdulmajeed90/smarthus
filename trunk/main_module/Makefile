@@ -88,6 +88,9 @@ LDFLAGS = $(EXTMEMOPTS) $(LDMAP) $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
 
 # Programming support using avrdude. Settings and variables.
 
+#AVRDUDE_PROGRAMMER = dt006
+#AVRDUDE_PORT = /dev/parport0
+
 AVRDUDE_PROGRAMMER = stk500
 AVRDUDE_PORT = /dev/ttyS0
 
