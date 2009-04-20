@@ -5,13 +5,14 @@
 # (GNU make, BSD make, SysV make)
 
 
-MCU = atmega168
+MCU = atmega328p
 FORMAT = ihex
 TARGET = main
 SRC = $(TARGET).c
-#SRC += uart.c
+SRC += uart.c
 SRC += ip_arp_udp_tcp.c
 SRC += enc28j60.c
+SRC += buffer.c
 #SRC += webcom.c
 
 
@@ -113,7 +114,7 @@ AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
 # to submit bug reports.
 #AVRDUDE_VERBOSE = -v -v
 
-AVRDUDE_BASIC = -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_BASIC = -p m328 -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
 AVRDUDE_FLAGS = $(AVRDUDE_BASIC) $(AVRDUDE_NO_VERIFY) $(AVRDUDE_VERBOSE) $(AVRDUDE_ERASE_COUNTER)
 
 

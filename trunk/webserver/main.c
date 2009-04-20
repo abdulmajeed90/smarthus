@@ -27,6 +27,7 @@
 #include "timeout.h"
 #include "avr_compat.h"
 #include "net.h"
+#include "uart.h"
 
 #define PINGPATTERN 0x42
 /* set output to Vcc, LED off */
@@ -558,7 +559,10 @@ int main(void){
 
         /* enable PD2/INT0, as input */
         DDRD&= ~(1<<DDD2);
-
+		
+        uartInit();
+        uartSetBaudRate(9600);
+		
         // test button
         cbi(DDRD,PIND6);
         sbi(PORTD,PIND6); // internal pullup resistor on
@@ -606,6 +610,7 @@ int main(void){
 
         sei(); // interrupt enable
 
+		printf("Hei, jeg starter opp!!!");
         while(1){
                 // spontanious messages must not interfer with
                 // web pages
