@@ -17,6 +17,7 @@
  *********************************************/
 #include <avr/io.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 #include <avr/interrupt.h>
@@ -27,7 +28,7 @@
 #include "timeout.h"
 #include "avr_compat.h"
 #include "net.h"
-#include "uart.h"
+#include "uart2.h"
 
 #define PINGPATTERN 0x42
 /* set output to Vcc, LED off */
@@ -560,8 +561,8 @@ int main(void){
         /* enable PD2/INT0, as input */
         DDRD&= ~(1<<DDD2);
 		
-        uartInit();
-        uartSetBaudRate(9600);
+        uartInit(0);
+        uartSetBaudRate(0,9600);
 		
         // test button
         cbi(DDRD,PIND6);
