@@ -12,8 +12,10 @@ SRC = $(TARGET).c
 SRC += uart2.c
 SRC += buffer.c
 SRC += i2c.c
+SRC += webcom.c
 SRC += ds1307.c
 SRC += timer128.c 
+
 
 ASRC = 
 OPT = s
