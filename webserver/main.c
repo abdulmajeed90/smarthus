@@ -28,7 +28,7 @@
 #include "timeout.h"
 #include "avr_compat.h"
 #include "net.h"
-#include "uart2.h"
+#include "uart.h"
 
 #define PINGPATTERN 0x42
 /* set output to Vcc, LED off */
@@ -57,7 +57,7 @@ static char *errmsg; // error text
 // listen port for tcp/www (max range 1-254)
 #define MYWWWPORT 80
 //
-#define BUFFER_SIZE 1700
+#define BUFFER_SIZE 700
 static uint8_t buf[BUFFER_SIZE+1];
 static volatile uint8_t pingtimer=1; // > 0 means wd running
 static volatile uint8_t pagelock=0; // avoid sending icmp and web pages at the same time
@@ -410,6 +410,8 @@ uint16_t print_webpage_now(uint8_t *buf)
 {
         uint16_t plen;
         plen=http200ok();
+		plen=fill_tcp_data_p(buf,plen,PSTR("hei"));
+		/*
         plen=fill_tcp_data_p(buf,plen,PSTR("<style type=\"text/css\">* {padding:0;margin:0;} body {font-size:10pt;font-family:\"georgia\";color:#333333;background:#74888e;}\n"));
 	plen=fill_tcp_data_p(buf,plen,PSTR("h5 {font-size:0.7em;} #outer {width:340px;border:2px solid #fff;background-color:#fff;margin:0 auto;} #header {background:#2b2b2b;margin-bottom:2px;}#headercontent {bottom:0;padding:0.7em 1em 0.7em 1em;}\n"));
 	plen=fill_tcp_data_p(buf,plen,PSTR("#headercontent h1 {font-weight:normal;color:#fff;font-size:2.5em;}\n"));
@@ -427,7 +429,7 @@ uint16_t print_webpage_now(uint8_t *buf)
                 plen=fill_tcp_data_p(buf,plen,PSTR("Passw: <input type=password size=8 name=pw><input type=hidden name=stp value=1><input type=submit value=\"stop watchdog now\"></form>"));
         }else{
                 plen=fill_tcp_data_p(buf,plen,PSTR("Passw: <input type=password size=8 name=pw><input type=hidden name=srt value=1><input type=submit value=\"start watchdog now\"></form><hr>"));
-        }
+        }*/
         return(plen);
 }
 
@@ -556,13 +558,14 @@ int main(void){
         // next four instructions.
         CLKPR=(1<<CLKPCE); // change enable
         CLKPR=0; // "no pre-scaler"
-        _delay_loop_1(50); // 12ms
+		uartInit();
+		uartSetBaudRate(9600);
 
+        _delay_loop_1(50); // 12ms
         /* enable PD2/INT0, as input */
         DDRD&= ~(1<<DDD2);
 		
-        uartInit(0);
-        uartSetBaudRate(0,9600);
+        
 		
         // test button
         cbi(DDRD,PIND6);
@@ -585,7 +588,7 @@ int main(void){
         enc28j60Init(mymac);
         enc28j60clkout(2); // change clkout from 6.25MHz to 12.5MHz
         _delay_loop_1(50); // 12ms
-
+//uartSendByte('s');
         // LED
         /* enable PB1, LED as output */
         //DDRB|= (1<<DDB1);
@@ -608,12 +611,14 @@ int main(void){
         //init the ethernet/ip layer:
         init_ip_arp_udp_tcp(mymac,myip,MYWWWPORT);
         timer_init();
-
+		
+		
         sei(); // interrupt enable
-
-		printf("Hei, jeg starter opp!!!");
+		//uartSendByte('b');
+		
         while(1){
-                // spontanious messages must not interfer with
+            //uartSendByte('i');    
+			// spontanious messages must not interfer with
                 // web pages
                 if (pagelock==0 && enc28j60hasRxPkt()==0){
                         if (sendping &&  havemac==0){
