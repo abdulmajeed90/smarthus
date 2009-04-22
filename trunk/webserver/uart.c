@@ -49,7 +49,7 @@ void uartInit(void)
 	UartRxFunc = 0;
 
 	// enable RxD/TxD and interrupts
-	outb(UCR, BV(RXCIE)|BV(TXCIE)|BV(RXEN)|BV(TXEN));
+	outb(UCSR0B, BV(RXCIE)|BV(TXCIE)|BV(RXEN)|BV(TXEN));
 
 	// set default baud rate
 	uartSetBaudRate(UART_DEFAULT_BAUD_RATE);  
