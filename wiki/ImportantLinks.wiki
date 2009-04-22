@@ -2,5 +2,6 @@
 = Introduction =
 
 SVN guide http://infoweb.ntnu.no/mine+filer/generelt/svn.html
+Install AVR-GCC http://www.pololu.com/docs/0J31/all
 
 = Details =
