@@ -57,7 +57,7 @@ static char *errmsg; // error text
 // listen port for tcp/www (max range 1-254)
 #define MYWWWPORT 80
 //
-#define BUFFER_SIZE 700
+#define BUFFER_SIZE 1700
 static uint8_t buf[BUFFER_SIZE+1];
 static volatile uint8_t pingtimer=1; // > 0 means wd running
 static volatile uint8_t pagelock=0; // avoid sending icmp and web pages at the same time
@@ -325,7 +325,8 @@ uint16_t print_webpage(uint8_t *buf)
 {
         uint16_t plen;
         // periodic refresh every 60sec:
-        plen=fill_tcp_data_p(buf,0,PSTR("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nPragma: no-cache\r\nRefresh: 60\r\n\r\n"));
+        uartSendByte('s');
+	plen=fill_tcp_data_p(buf,0,PSTR("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nPragma: no-cache\r\nRefresh: 60\r\n\r\n"));
 	//html code + iphone defined size + css for making the website look great
         plen=fill_tcp_data_p(buf,plen,PSTR("<html><head><meta name=\"viewport\" content=\"width=340\" /><style type=\"text/css\">\n"));
 	plen=fill_tcp_data_p(buf,plen,PSTR("* {padding:0;margin:0;} body,input {font-size:10pt;font-family:\"georgia\";color:#333333;background:#74888e;}\n"));
@@ -410,8 +411,6 @@ uint16_t print_webpage_now(uint8_t *buf)
 {
         uint16_t plen;
         plen=http200ok();
-		plen=fill_tcp_data_p(buf,plen,PSTR("hei"));
-		/*
         plen=fill_tcp_data_p(buf,plen,PSTR("<style type=\"text/css\">* {padding:0;margin:0;} body {font-size:10pt;font-family:\"georgia\";color:#333333;background:#74888e;}\n"));
 	plen=fill_tcp_data_p(buf,plen,PSTR("h5 {font-size:0.7em;} #outer {width:340px;border:2px solid #fff;background-color:#fff;margin:0 auto;} #header {background:#2b2b2b;margin-bottom:2px;}#headercontent {bottom:0;padding:0.7em 1em 0.7em 1em;}\n"));
 	plen=fill_tcp_data_p(buf,plen,PSTR("#headercontent h1 {font-weight:normal;color:#fff;font-size:2.5em;}\n"));
@@ -429,7 +428,7 @@ uint16_t print_webpage_now(uint8_t *buf)
                 plen=fill_tcp_data_p(buf,plen,PSTR("Passw: <input type=password size=8 name=pw><input type=hidden name=stp value=1><input type=submit value=\"stop watchdog now\"></form>"));
         }else{
                 plen=fill_tcp_data_p(buf,plen,PSTR("Passw: <input type=password size=8 name=pw><input type=hidden name=srt value=1><input type=submit value=\"start watchdog now\"></form><hr>"));
-        }*/
+	}
         return(plen);
 }
 
@@ -588,7 +587,6 @@ int main(void){
         enc28j60Init(mymac);
         enc28j60clkout(2); // change clkout from 6.25MHz to 12.5MHz
         _delay_loop_1(50); // 12ms
-//uartSendByte('s');
         // LED
         /* enable PB1, LED as output */
         //DDRB|= (1<<DDB1);
@@ -614,10 +612,9 @@ int main(void){
 		
 		
         sei(); // interrupt enable
-		//uartSendByte('b');
+		uartSendByte('b');
 		
         while(1){
-            //uartSendByte('i');    
 			// spontanious messages must not interfer with
                 // web pages
                 if (pagelock==0 && enc28j60hasRxPkt()==0){
