@@ -1,3 +1,27 @@
+/**
+ * \file
+ * \author  Jon Ove Storhaug <jostorha@gmail.com>
+ * \version 1.0
+ * \brief Main Module 
+ *
+ * \section LICENSE
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation; either version 2 of
+ * the License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details at
+ * http://www.gnu.org/copyleft/gpl.html
+ *
+ * \section DESCRIPTION
+ *
+ * This file is used for sending and receiving packets to and from the Webserver
+ * and the main module
+ */
 #include <stdlib.h>
 #include <avr/io.h>
 #include "global.h"
@@ -25,16 +49,8 @@ FILE uart1_str = FDEV_SETUP_STREAM(uart1SendByte, uart1GetByte, _FDEV_SETUP_RW);
 
 
 time_t time;//={21,3,7,3,1,3,9};
-
-
-///////////////////////////////////////////////////////////////////////////////////
-// DESCRIPTION: Main
-//				
-// ARGUMENTS:	
-//
-// MADE BY:		Jon Ove Storhaug  26.03.2009				
-//////////////////////////////////////////////////////////////////////////////////
-
+slaveModule sm[noOfModules]={{0,1,5},{0,0,15},{0,1,20}};
+unsigned char ethPacket[noOfBytes];
 
 int main(void)
 {
@@ -72,9 +88,16 @@ int main(void)
 			if((time.sec%10==0)&&(tempSec!=time.sec))
 			{
 				//printf("\n\rTime:%d:%d:%d",time.hr,time.min,time.sec);
-				sendEthPacket(time);
+				sendEthPacket(time, sm);
 			}
-			//checkForEthPacket();
+			wdt_disable();
+			if (checkForEthPacket(&ethPacket))
+			{
+				for (int i=0;i<noOfBytes;i++)
+				{
+					uart1SendByte(ethPacket[i]);
+				}
+			}
 		}
 		else(printf("ERROR"));
 	}

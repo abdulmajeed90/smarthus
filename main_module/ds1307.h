@@ -11,13 +11,13 @@
 #define false 0
 
 typedef struct {
-   u08 sec ;
-   u08 min ;
-   u08 hr  ;
-   u08 day ;
-   u08 dat ;
-   u08 mon ;
-  u08 yr ;
+	u08 sec ;
+	u08 min ;
+	u08 hr  ;
+	u08 day ;
+	u08 dat ;
+	u08 mon ;
+	u08 yr ;
 } time_t;
 
 char ds1307_settime(u08 i2cAddr,time_t time);

@@ -13,7 +13,7 @@ SRC += uart.c
 SRC += ip_arp_udp_tcp.c
 SRC += enc28j60.c
 SRC += buffer.c
-#SRC += webcom.c
+SRC += mmcom.c
 
 
 

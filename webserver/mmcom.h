@@ -1,5 +1,5 @@
 /**
- * \file webcom.h
+ * \file mmcom.h
  * \author  Jon Ove Storhaug <jostorha@gmail.com>
  * \version 1.0
  * \brief Serial communication between Webserver and Main Module 
@@ -23,14 +23,10 @@
  * and the main module
  */
 
-#ifndef WEBCOM_H_
-#define WEBCOM_H_
+#ifndef MMCOM_H_
+#define MMCOM_H_
 
-#include "uart2.h"
-#include "ds1307.h"
-
-#define XBeeUART 0
-#define EthUART 1
+#include "uart.h"
 
 #define pSlave_modules 0
 #define pYear 1 
@@ -58,6 +54,18 @@ typedef struct  {
 	signed char temp; ///< The temperature in degrees Celcius
 } slaveModule;
 
+///Time structure
+///
+typedef struct {
+	u08 sec ;
+	u08 min ;
+	u08 hr  ;
+	u08 day ;
+	u08 dat ;
+	u08 mon ;
+	u08 yr ;
+} time_t;
+
 //! Checks if a packet is ready to be received
 ///
 int checkForEthPacket(unsigned char* ethPacket);
@@ -70,4 +78,4 @@ void sendEthPacket(time_t time, slaveModule* sm);
 
 
 
-#endif /*webcom_H_*/
+#endif /*MMCOM_H_*/
