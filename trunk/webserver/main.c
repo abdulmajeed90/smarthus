@@ -15,6 +15,7 @@
  *	Future plans:
  *	- working on them
  *********************************************/
+#include "global.h"
 #include <avr/io.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -29,6 +30,8 @@
 #include "avr_compat.h"
 #include "net.h"
 #include "uart.h"
+#include "mmcom.h"
+
 
 #define PINGPATTERN 0x42
 /* set output to Vcc, LED off */
@@ -68,6 +71,10 @@ static char strbuf[STR_BUFFER_SIZE+1];
 //
 // the password string (only the first 7 char checked), (only a-z,0-9,_ characters):
 static char password[10]="secret"; // must not be longer than 9 char
+
+time_t time={21,3,7,3,1,3,9};
+slaveModule sm[noOfModules]={{0,1,5},{0,0,15},{0,1,20}};
+unsigned char ethPacket[noOfBytes];
 
 // 
 uint8_t verify_password(char *str)
@@ -348,6 +355,12 @@ uint16_t print_webpage(uint8_t *buf)
                 //temp now (dummy tekst atm)
                 plen=fill_tcp_data_p(buf,plen,PSTR("23*C  "));
                 //temp on/off
+		//unsigned char klokke[20];
+		//sprintf(klokke, "Klokke: %d:%d:%d",);
+		//plen=fill_tcp_data_p(buf,plen,PSTR(klokke));
+		 itoa(ethPacket[pSec],strbuf,10);
+         plen=fill_tcp_data(buf,plen,strbuf);
+		
         if (hoststatus==0){
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=#00ff00>OK"));
         }else{
@@ -614,7 +627,12 @@ int main(void){
         sei(); // interrupt enable
 		uartSendByte('b');
 		
-        while(1){
+		while(1){
+			if (checkForEthPacket(&ethPacket))
+			{
+				
+				sendEthPacket(time, sm);
+			}
 			// spontanious messages must not interfer with
                 // web pages
                 if (pagelock==0 && enc28j60hasRxPkt()==0){

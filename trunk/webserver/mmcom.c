@@ -1,5 +1,5 @@
 /**
- * \file webcom.c
+ * \file mmcom.c
  * \author  Jon Ove Storhaug <jostorha@gmail.com>
  * \version 1.0
  * \brief Serial communication between Webserver and Main Module 
@@ -22,27 +22,26 @@
  * This file is used for sending and receiving packets to and from the Webserver
  * and the main module
  */
-#include "webcom.h"
+#include "mmcom.h"
 
 
 int checkForEthPacket(unsigned char* ethPacket)
 {
-	
-	if(!uartReceiveBufferIsEmpty(EthUART))
+	if(!uartReceiveBufferIsEmpty())
 	{
 		int i;
 		i=0;
 		while (i<noOfBytes)
 		{
-			while (uartReceiveBufferIsEmpty(EthUART))
+			while (uartReceiveBufferIsEmpty())
 				;;
-			uartReceiveByte(EthUART, &ethPacket[i]);
+			uartReceiveByte(&ethPacket[i]);
 			i++;
 		}
-		return true;
+		return 1;
 	}
 	else 
-		return false;
+		return 0;
 }
 void sendEthPacket(time_t time, slaveModule* sm)
 {
@@ -65,6 +64,6 @@ void sendEthPacket(time_t time, slaveModule* sm)
 	}
 	for (int i=0;i<noOfBytes;i++)
 	{
-		uart1SendByte(ethBuffer[i]);
+		uartSendByte(ethBuffer[i]);
 	}
 }
