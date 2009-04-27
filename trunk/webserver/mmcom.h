@@ -28,14 +28,14 @@
 
 #include "uart.h"
 
-#define pSlave_modules 0
-#define pYear 1 
+#define pSlave_modules 0 ///< Number of Slave Modules connected
+#define pYear 1
 #define pMonth 2
 #define pDate 3
 #define pHour 4 
 #define pMin 5
 #define pSec 6
-#define pNumber 7
+#define pNumber 7 
 #define pType 8
 #define pStatus 9
 #define pTemp 10
