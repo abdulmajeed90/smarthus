@@ -31,7 +31,7 @@
 #include "net.h"
 #include "uart.h"
 #include "mmcom.h"
-
+#include <util/delay.h>
 
 #define PINGPATTERN 0x42
 /* set output to Vcc, LED off */
@@ -60,7 +60,7 @@ static char *errmsg; // error text
 // listen port for tcp/www (max range 1-254)
 #define MYWWWPORT 80
 //
-#define BUFFER_SIZE 1700
+#define BUFFER_SIZE 1500
 static uint8_t buf[BUFFER_SIZE+1];
 static volatile uint8_t pingtimer=1; // > 0 means wd running
 static volatile uint8_t pagelock=0; // avoid sending icmp and web pages at the same time
@@ -74,7 +74,7 @@ static char password[10]="secret"; // must not be longer than 9 char
 
 time_t time={21,3,7,3,1,3,9};
 slaveModule sm[noOfModules]={{0,1,5},{0,0,15},{0,1,20}};
-unsigned char ethPacket[noOfBytes];
+unsigned char ethPacket [noOfBytes] ={3,9,4,27,13,22,0,0,1,1,15,1,0,0,20};
 
 // 
 uint8_t verify_password(char *str)
@@ -335,11 +335,16 @@ uint16_t print_webpage(uint8_t *buf)
         uartSendByte('s');
 	plen=fill_tcp_data_p(buf,0,PSTR("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nPragma: no-cache\r\nRefresh: 60\r\n\r\n"));
 	//html code + iphone defined size + css for making the website look great
-        plen=fill_tcp_data_p(buf,plen,PSTR("<html><head><meta name=\"viewport\" content=\"width=340\" /><style type=\"text/css\">\n"));
-	plen=fill_tcp_data_p(buf,plen,PSTR("* {padding:0;margin:0;} body,input {font-size:10pt;font-family:\"georgia\";color:#333333;background:#74888e;}\n"));
-	plen=fill_tcp_data_p(buf,plen,PSTR("h5 {font-size:0.7em;} #outer {width:340px;border:2px solid #fff;background-color:#fff;margin:0 auto;} #header {background:#2b2b2b;margin-bottom:2px;}#headercontent {bottom:0;padding:0.7em 1em 0.7em 1em;}\n"));
-	plen=fill_tcp_data_p(buf,plen,PSTR("#headercontent h1 {font-weight:normal;color:#fff;font-size:2.5em;} #menu {position:relative;background:#2b2b2b;height:3.5em;padding:0 1em 0 1em;margin-bottom:2px;} #menu ul {position:absolute;top:1.1em;}\n"));
-	plen=fill_tcp_data_p(buf,plen,PSTR("#menu ul li {position:relative;display:inline;} #menu ul li a {padding:0.5em 1em 0.9em 1em;color:#fff;text-decoration:none;} #content {padding:2em 2em 0 2em;}\n"));
+	// add the following between <head> and <style ...> if you want support for iPhone
+	//
+	// <meta name=\"viewport\" content=\"width=340\" />
+	//
+        plen=fill_tcp_data_p(buf,plen,PSTR("<html><head><style type=\"text/css\">\n"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("* {padding:0;margin:0;} body,input {font-size:10pt;font-family:\"georgia\";background:#74888e;}\n"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("#outer {width:340px;border:2px solid #fff;background-color:#fff;margin:0 auto;} #header {background:#2b2b2b;margin-bottom:2px;}#headercontent {bottom:0;padding:0.7em 1em 0.7em 1em;}\n"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("h1 {color:#fff;font-size:2.5em;} #menu {position:relative;background:#2b2b2b;height:3.5em;padding:0 1em 0 1em;margin-bottom:2px;} #menu ul {position:absolute;top:1.1em;}\n"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("#menu ul li {display:inline;}#menu ul li a {padding:0.5em 1em 0.9em 1em;color:#fff;} #content {padding:2em 2em 0 2em;}\n"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("p.klokke {color:blue;font-size:2.5em;text-align:center;} p.dato {font-size:1em;text-align:center;}"));
 	plen=fill_tcp_data_p(buf,plen,PSTR("</style></head><body><div id=\"outer\"><div id=\"header\"><div id=\"headercontent\">"));
 	// Webserver header
 	plen=fill_tcp_data_p(buf,plen,PSTR("<h1>Webserver 0.2</h1></div></div>\n"));
@@ -349,18 +354,109 @@ uint16_t print_webpage(uint8_t *buf)
 	plen=fill_tcp_data_p(buf,plen,PSTR("<li><a href=\"/cnf\">Kontroll</a></li>\n"));
 	plen=fill_tcp_data_p(buf,plen,PSTR("<li><a href=\"http://deface.no/hvp2009/\" target=\"_blank\">Hjelp</a></li>\n"));
 	plen=fill_tcp_data_p(buf,plen,PSTR("<li><a href=\"/\">Refresh</a></li>\n"));
-	plen=fill_tcp_data_p(buf,plen,PSTR("</ul></div><div id=\"menubottom\"></div><div id=\"content\"><h4>Temperatur inne</h4>\n"));
-	//content
-	plen=fill_tcp_data_p(buf,plen,PSTR("<br><br>Soverom 1: "));
-                //temp now (dummy tekst atm)
-                plen=fill_tcp_data_p(buf,plen,PSTR("23*C  "));
-                //temp on/off
-		//unsigned char klokke[20];
-		//sprintf(klokke, "Klokke: %d:%d:%d",);
-		//plen=fill_tcp_data_p(buf,plen,PSTR(klokke));
-		 itoa(ethPacket[pSec],strbuf,10);
-         plen=fill_tcp_data(buf,plen,strbuf);
-		
+	plen=fill_tcp_data_p(buf,plen,PSTR("</ul></div><div id=\"menubottom\"></div><div id=\"content\">"));
+
+	// This is the start of the clock output
+	plen=fill_tcp_data_p(buf,plen,PSTR("<p class=\"klokke\">"));
+
+	itoa(ethPacket[pHour],strbuf,10);
+	plen=fill_tcp_data(buf,plen,strbuf);
+	plen=fill_tcp_data_p(buf,plen,PSTR(":"));
+
+	itoa(ethPacket[pMin],strbuf,10);
+        plen=fill_tcp_data(buf,plen,strbuf);
+	plen=fill_tcp_data_p(buf,plen,PSTR(":"));
+
+        itoa(ethPacket[pSec],strbuf,10);
+        plen=fill_tcp_data(buf,plen,strbuf);
+
+	// This is the start of the date output
+        plen=fill_tcp_data_p(buf,plen,PSTR("</p><p class=\"dato\">"));
+
+        itoa(ethPacket[pDate],strbuf,10);
+        plen=fill_tcp_data(buf,plen,strbuf);
+        plen=fill_tcp_data_p(buf,plen,PSTR(" - "));
+
+        itoa(ethPacket[pMonth],strbuf,10);
+        plen=fill_tcp_data(buf,plen,strbuf);
+        plen=fill_tcp_data_p(buf,plen,PSTR(" - "));
+
+        itoa(ethPacket[pYear],strbuf,10);
+        plen=fill_tcp_data(buf,plen,strbuf);
+        plen=fill_tcp_data_p(buf,plen,PSTR("</p><br><br>"));
+
+
+	// The temperatur status
+	plen=fill_tcp_data_p(buf,plen,PSTR("<h4>Temperatur inne</h4>\n"));
+
+	// Room 1 status
+	plen=fill_tcp_data_p(buf,plen,PSTR("<br>Room 1: "));
+	// Temperatur is green for lower then 15 degrees, red for higher
+	if (ethPacket[pTemp]<=15)
+	{
+		plen=fill_tcp_data_p(buf,plen,PSTR("<font color=green> "));
+		itoa(ethPacket[pTemp],strbuf,10);
+	        plen=fill_tcp_data(buf,plen,strbuf);
+		plen=fill_tcp_data_p(buf,plen,PSTR("</font>&deg;C<br>"));
+	}
+	else
+	{
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
+                itoa(ethPacket[pTemp],strbuf,10);
+                plen=fill_tcp_data(buf,plen,strbuf);
+                plen=fill_tcp_data_p(buf,plen,PSTR("</font>&deg;C<br>"));
+	}
+	// Check for slave status, 0 = off, 1 = on , 2 = no change
+	plen=fill_tcp_data_p(buf,plen,PSTR("Status: "));
+        if (ethPacket[pStatus]==0)
+        {
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
+//                itoa(ethPacket[pStatus],strbuf,10);
+//                plen=fill_tcp_data(buf,plen,strbuf);
+                plen=fill_tcp_data_p(buf,plen,PSTR("Off</font><br>"));
+        }
+        else if (ethPacket[pStatus]==1)
+        {
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=green> "));
+                plen=fill_tcp_data_p(buf,plen,PSTR("On</font><br>"));
+        }
+
+	// Room 2 status
+        plen=fill_tcp_data_p(buf,plen,PSTR("<br>Room 2: "));
+
+        if ((ethPacket[pFieldsModules+pTemp])<=15)
+        {
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=green> "));
+                itoa(ethPacket[pFieldsModules+pTemp],strbuf,10);
+                plen=fill_tcp_data(buf,plen,strbuf);
+                plen=fill_tcp_data_p(buf,plen,PSTR("</font> &deg;C<br>"));
+        }
+
+        else
+        {
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
+		itoa(ethPacket[pFieldsModules+pTemp],strbuf,10);
+                plen=fill_tcp_data(buf,plen,strbuf);
+                plen=fill_tcp_data_p(buf,plen,PSTR("</font>&deg;C<br>"));
+        }
+        // Check for slave status, 0 = off, 1 = on , 2 = no change
+        plen=fill_tcp_data_p(buf,plen,PSTR("Status: "));
+        if (ethPacket[pFieldsModules+pStatus]==0)
+        {
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
+//                itoa(ethPacket[pStatus],strbuf,10);
+//                plen=fill_tcp_data(buf,plen,strbuf);
+                plen=fill_tcp_data_p(buf,plen,PSTR("Off</font><br>"));
+        }
+        else if (ethPacket[pFieldsModules+pStatus]==1)
+        {
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=green> "));
+                plen=fill_tcp_data_p(buf,plen,PSTR("On</font><br>"));
+        }
+
+
+
+/*
         if (hoststatus==0){
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=#00ff00>OK"));
         }else{
@@ -379,7 +475,7 @@ uint16_t print_webpage(uint8_t *buf)
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=#ff0000>"));
                 itoa(hoststatus,strbuf,10);
                 plen=fill_tcp_data(buf,plen,strbuf);
-        }
+        }*/
         plen=fill_tcp_data_p(buf,plen,PSTR("</div></body></html>"));
 
        return(plen);
@@ -622,17 +718,20 @@ int main(void){
         //init the ethernet/ip layer:
         init_ip_arp_udp_tcp(mymac,myip,MYWWWPORT);
         timer_init();
-		
-		
+
+
         sei(); // interrupt enable
 		uartSendByte('b');
-		
+
 		while(1){
 			if (checkForEthPacket(&ethPacket))
 			{
-				
+
 				sendEthPacket(time, sm);
+				uartFlushReceiveBuffer();
 			}
+			_delay_ms(500);
+			uartSendByte('c');
 			// spontanious messages must not interfer with
                 // web pages
                 if (pagelock==0 && enc28j60hasRxPkt()==0){

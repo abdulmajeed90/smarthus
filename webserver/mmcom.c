@@ -38,9 +38,10 @@ int checkForEthPacket(unsigned char* ethPacket)
 			uartReceiveByte(&ethPacket[i]);
 			i++;
 		}
-		return 1;
+		uartFlushReceiveBuffer();
+		return 0;
 	}
-	else 
+	else
 		return 0;
 }
 void sendEthPacket(time_t time, slaveModule* sm)
@@ -59,7 +60,7 @@ void sendEthPacket(time_t time, slaveModule* sm)
 		ethBuffer[pNumber+number*pFieldsModules]=number;
 		ethBuffer[pType+number*pFieldsModules]=sm[number].type;
 		ethBuffer[pStatus+number*pFieldsModules]=sm[number].status;
-		ethBuffer[pTemp+number*pFieldsModules]=sm[number].temp;		
+		ethBuffer[pTemp+number*pFieldsModules]=sm[number].temp;
 		number++;
 	}
 	for (int i=0;i<noOfBytes;i++)
