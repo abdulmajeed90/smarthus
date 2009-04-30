@@ -73,8 +73,8 @@ static char strbuf[STR_BUFFER_SIZE+1];
 static char password[10]="secret"; // must not be longer than 9 char
 
 time_t time={21,3,7,3,1,3,9};
-slaveModule sm[noOfModules]={{0,1,5},{0,0,15},{0,1,20}};
-unsigned char ethPacket [noOfBytes] ={3,9,4,27,13,22,0,0,1,1,15,1,0,0,20};
+slaveModule sm[noOfModules]={{0,1,5},{0,1,17},{0,1,20}};
+signed char ethPacket [noOfBytes] ={3,9,4,27,13,22,0,0,1,1,15,1,0,0,20};
 
 // 
 uint8_t verify_password(char *str)
@@ -332,7 +332,6 @@ uint16_t print_webpage(uint8_t *buf)
 {
         uint16_t plen;
         // periodic refresh every 60sec:
-        uartSendByte('s');
 	plen=fill_tcp_data_p(buf,0,PSTR("HTTP/1.0 200 OK\r\nContent-Type: text/html\r\nPragma: no-cache\r\nRefresh: 60\r\n\r\n"));
 	//html code + iphone defined size + css for making the website look great
 	// add the following between <head> and <style ...> if you want support for iPhone
@@ -718,20 +717,19 @@ int main(void){
         //init the ethernet/ip layer:
         init_ip_arp_udp_tcp(mymac,myip,MYWWWPORT);
         timer_init();
-
-
+		_delay_ms(1000);
+		uartFlushReceiveBuffer();
         sei(); // interrupt enable
-		uartSendByte('b');
 
 		while(1){
-			if (checkForEthPacket(&ethPacket))
-			{
+			//uartSendByte('a');
 
+			//checkForEthPacket(ethPacket);
+			if (checkForEthPacket(ethPacket))
+ 			{
 				sendEthPacket(time, sm);
-				uartFlushReceiveBuffer();
-			}
-			_delay_ms(500);
-			uartSendByte('c');
+ 			}
+			//_delay_ms(500);
 			// spontanious messages must not interfer with
                 // web pages
                 if (pagelock==0 && enc28j60hasRxPkt()==0){
