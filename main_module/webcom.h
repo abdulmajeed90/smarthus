@@ -28,6 +28,7 @@
 
 #include "uart2.h"
 #include "ds1307.h"
+#include <util/delay.h>
 
 #define XBeeUART 0
 #define EthUART 1
@@ -60,7 +61,7 @@ typedef struct  {
 
 //! Checks if a packet is ready to be received
 ///
-int checkForEthPacket(unsigned char* ethPacket);
+int checkForEthPacket(signed char* ethPacket);
 
 //! Send a packet
 //! \param time The actual time the packet is sent (sec, min, hr, dat, mon, yr)
