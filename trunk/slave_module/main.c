@@ -8,7 +8,7 @@
 #include <util/delay.h>
 #include <string.h>
 #include <stdio.h>
-//#define NAME "Router1"		//Navnet Router1 blir definert som NAME
+//#define name "Router1"		//Navnet Router1 blir definert som name
 #define BAUD 9600
 
 void compare(void);
@@ -19,10 +19,10 @@ void ds1631init(void);
 void ds1631getTemp(void);
 
 int i=0;
-char temp[8];
+signed char temp;
 int counter=0;
 char buffer1[10];
-char NAME[10];
+char name[10];
 FILE uart_str = FDEV_SETUP_STREAM(uartSendByte, uartGetByte, _FDEV_SETUP_RW);
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -94,33 +94,30 @@ void readtobuffer(void)
 void compare(void)
 {
 
-	if (strncmp(buffer1,NAME,7)==0)
-		{
-			if((buffer1[8]=='o')&&(buffer1[9]=='n'))
-			{
-                PORTB |=1<<1;
-                ds1631getTemp();
-                sendPacket();
-            }
-			else if((buffer1[8]=='o')&&(buffer1[9]=='f'))
-			{
-                PORTB &=~(1<<1);
-                ds1631getTemp();
-                sendPacket();
-			}
-			else if((buffer1[8]=='n')&&(buffer1[9]=='c'))
-            {
-                ds1631getTemp();
-				sendPacket();
-            }
-            
-		}
-	
-	else
+	if (strncmp(buffer1,name,7)==0)
 	{
-		printf ("ERROR");
-		return;
-	}	
+		if((buffer1[8]=='o')&&(buffer1[9]=='n'))
+		{
+			PORTB |=1<<1;
+			ds1631getTemp();
+			sendPacket();
+		}
+		else if((buffer1[8]=='o')&&(buffer1[9]=='f'))
+		{
+			PORTB &=~(1<<1);
+			ds1631getTemp();
+			sendPacket();
+		}
+		else if((buffer1[8]=='n')&&(buffer1[9]=='c'))
+		{
+			ds1631getTemp();
+			sendPacket();
+		}
+            
+	}
+}
+	
+	
 
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -132,11 +129,11 @@ void compare(void)
 //////////////////////////////////////////////////////////////////////////////////
 
 
-}
+
 void sendPacket(void)
 {
     char status[3];
-    printf(NAME);
+    printf(name);
     if(PINB&(1<<PINB1)) 
     sprintf(status,"on");
     else
@@ -145,10 +142,11 @@ void sendPacket(void)
 	printf("_");
 	printf(status);
 	printf("_");
-	printf(temp);
+	uartSendByte(temp);
+	//printf(temp);
 }
 ///////////////////////////////////////////////////////////////////////////////////
-// DESCRIPTION: The XBee's name is read and saved in the global variable NAME
+// DESCRIPTION: The XBee's name is read and saved in the global variable name
 //
 // ARGUMENTS:	
 //
@@ -181,11 +179,11 @@ void XBeeGetName(void)
 	// Receive the name
 	while(i!=20)
 	{
-		if (uartReceiveByte(&NAME[i]))
+		if (uartReceiveByte(&name[i]))
 		{
-			if (NAME[i]=='\r')
+			if (name[i]=='\r')
 			{
-				NAME[i]='\0';
+				name[i]='\0';
 				i=20;
 			}
 			else
@@ -267,5 +265,6 @@ void ds1631getTemp(void)
 	// Read temp
 	T = ds1631ReadTemp(DS1631_I2C_ADDR);
 	// Insert the formatted temperature reading in the string temp 
-	sprintf(temp,"%d.%d", T>>8, (10*((T&0x00FF)))/256);
+	temp=T>>8;
+	//sprintf(temp,"%d.%d", T>>8, (10*((T&0x00FF)))/256);
 }

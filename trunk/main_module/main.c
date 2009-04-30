@@ -46,11 +46,13 @@
 FILE uart0_str = FDEV_SETUP_STREAM(uart0SendByte, NULL, _FDEV_SETUP_WRITE);
 FILE uart1_str = FDEV_SETUP_STREAM(uart1SendByte, uart1GetByte, _FDEV_SETUP_RW);
 
+void sendSlaveModule(unsigned char number,unsigned char status);
 
 
-time_t time;//={21,3,7,3,1,3,9};
-slaveModule sm[noOfModules]={{0,1,5},{0,0,15},{0,1,20}};
-unsigned char ethPacket[noOfBytes];
+time_t time={3,43,16,3,21,3,8};
+slaveModule sm[noOfModules]={{0,1,-5},{0,0,15},{0,1,20}};
+slaveModule sm_web[noOfModules];
+signed char ethPacket[noOfBytes];
 
 int main(void)
 {
@@ -65,22 +67,35 @@ int main(void)
 	uartSetBaudRate(1,BAUD);
 	stdout = stdin = &uart1_str;
 	stderr = &uart0_str;
-	printf("HEI!!!!");
-	fprintf(stderr, "Hello world!\n");
+	//fprintf(stderr, "Hello world!\n");
 	i2cInit();
 	i2cSetBitrate(100);	
-	if (ds1307_enable(DS1307_I2C_ADDR)) 
-		printf("ds1307 Enabled");
-	else 
-		printf("ds1307 not found");
+// 	if (ds1307_enable(DS1307_I2C_ADDR)) 
+// 		printf("ds1307 Enabled");
+// 	else 
+// 		printf("ds1307 not found");
+	ds1307_enable(DS1307_I2C_ADDR);
 	uartFlushReceiveBuffer(EthUART);
 	uartFlushReceiveBuffer(XBeeUART);
-	//ds1307_settime(DS1307_I2C_ADDR,time);
+	ds1307_settime(DS1307_I2C_ADDR,time);
 	unsigned char tempSec;
+	int e=0;
+	_delay_ms(5000);
+// 	while(e<noOfBytes)
+// 	{
+// 		uart1SendByte(1);
+// 		e++;
+// 		_delay_ms(2);
+// 	}
+	uartFlushReceiveBuffer(EthUART);
+	//_delay_ms(10000);
+	
 	while(1)
 	{	
-		wdt_enable(WDTO_2S);
-		wdt_reset();
+		//wdt_enable(WDTO_2S);
+		//wdt_reset();
+		
+		//sendEthPacket(time, sm);
 		
 		tempSec=time.sec;
 		if(ds1307_gettime(DS1307_I2C_ADDR, &time))
@@ -88,18 +103,87 @@ int main(void)
 			if((time.sec%10==0)&&(tempSec!=time.sec))
 			{
 				//printf("\n\rTime:%d:%d:%d",time.hr,time.min,time.sec);
+				//sendEthPacket(time, sm);
+				if (checkForEthPacket(ethPacket))
+				{
+					if (0)//edit)
+					{
+						time.yr=ethPacket[pYear];
+						time.mon=ethPacket[pMonth];
+						time.dat=ethPacket[pDate];
+						time.hr=ethPacket[pHour];
+						time.min=ethPacket[pMin];
+						ds1307_settime(DS1307_I2C_ADDR,time);
+					}
+					int number=0;
+					while (number<noOfModules)
+					{
+						sm_web[number].type=ethPacket[pType+number*pFieldsModules];
+						sm_web[number].status=ethPacket[pStatus+number*pFieldsModules];
+						sm_web[number].temp=ethPacket[pTemp+number*pFieldsModules];
+						switch (sm_web[number].type)
+						{
+							case 0:
+								if (sm_web[number].status==0)
+									sendSlaveModule(number,0);
+								else
+								{
+									if ((sm[number].temp)<(sm_web[number].temp-1))
+										sendSlaveModule(number,1);
+									else if ((sm[number].temp)>(sm_web[number].temp+1))
+										sendSlaveModule(number,0);
+									else 
+										sendSlaveModule(number,2);
+								}
+								break;
+						}
+						number++;
+					}
+				}
+				//fprintf(stderr, "Sender pakke!\n");
 				sendEthPacket(time, sm);
 			}
-			wdt_disable();
-			if (checkForEthPacket(&ethPacket))
+			if(tempSec!=time.sec)
 			{
-				for (int i=0;i<noOfBytes;i++)
+				if(!uartReceiveBufferIsEmpty(XBeeUART))
 				{
-					uart1SendByte(ethPacket[i]);
+					fprintf(stderr, "mottar pakke!\n");
+					int i;
+					i=0;
+					signed char XBeePacket[12];
+					while (i<12)
+					{
+						while (uartReceiveBufferIsEmpty(XBeeUART))
+							;;
+						uartReceiveByte(XBeeUART, &XBeePacket[i]);
+						i++;
+					}
+					fprintf(stderr, "har mottatt alt!\n");
+					sm[XBeePacket[6]-'0'].temp=XBeePacket[11];
+					if (XBeePacket[9]=='f')
+						sm[XBeePacket[6]-'0'].status=0;
+					else if (XBeePacket[9]=='n')
+						sm[XBeePacket[6]-'0'].status=1;
 				}
 			}
 		}
-		else(printf("ERROR"));
-	}
+		else(printf("ERROR_klokkefeil"));
+	}	
 	return 0;	
+}
+
+void sendSlaveModule(unsigned char number,unsigned char status)
+{
+	switch (status)
+	{
+		case 0:
+			fprintf(stderr,"ROUTER%d_of",number);
+			break;
+		case 1:
+			fprintf(stderr,"ROUTER%d_on",number);
+			break;
+		case 2:
+			fprintf(stderr,"ROUTER%d_nc",number);
+			break;
+	}
 }

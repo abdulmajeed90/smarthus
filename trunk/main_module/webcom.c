@@ -25,7 +25,7 @@
 #include "webcom.h"
 
 
-int checkForEthPacket(unsigned char* ethPacket)
+int checkForEthPacket(signed char* ethPacket)
 {
 	
 	if(!uartReceiveBufferIsEmpty(EthUART))
@@ -39,14 +39,14 @@ int checkForEthPacket(unsigned char* ethPacket)
 			uartReceiveByte(EthUART, &ethPacket[i]);
 			i++;
 		}
-		return true;
+		return 1;
 	}
 	else 
-		return false;
+		return 0;
 }
 void sendEthPacket(time_t time, slaveModule* sm)
 {
-	unsigned char ethBuffer[noOfBytes];
+	signed char ethBuffer[noOfBytes];
 	ethBuffer[pSlave_modules]=noOfModules;
 	ethBuffer[pYear]=time.yr;
 	ethBuffer[pMonth]=time.mon;
@@ -66,5 +66,6 @@ void sendEthPacket(time_t time, slaveModule* sm)
 	for (int i=0;i<noOfBytes;i++)
 	{
 		uart1SendByte(ethBuffer[i]);
+		_delay_ms(2);
 	}
 }
