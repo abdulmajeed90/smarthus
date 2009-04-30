@@ -25,7 +25,7 @@
 #include "mmcom.h"
 
 
-int checkForEthPacket(unsigned char* ethPacket)
+int checkForEthPacket(signed char* ethPacket)
 {
 	if(!uartReceiveBufferIsEmpty())
 	{
@@ -39,6 +39,7 @@ int checkForEthPacket(unsigned char* ethPacket)
 			i++;
 		}
 		return 1;
+		uartFlushReceiveBuffer();
 	}
 	else 
 		return 0;
