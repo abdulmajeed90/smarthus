@@ -53,6 +53,7 @@ time_t time={3,43,16,3,21,3,8};
 slaveModule sm[noOfModules]={{0,1,-5},{0,0,15},{0,1,20}};
 slaveModule sm_web[noOfModules];
 signed char ethPacket[noOfBytes];
+unsigned char XBeePacketCounter[noOfModules];
 
 int main(void)
 {
@@ -100,7 +101,7 @@ int main(void)
 		tempSec=time.sec;
 		if(ds1307_gettime(DS1307_I2C_ADDR, &time))
 		{	//if(tempSec!=time.sec)	
-			if((time.sec%10==0)&&(tempSec!=time.sec))
+			if((time.sec%2==0)&&(tempSec!=time.sec))
 			{
 				//printf("\n\rTime:%d:%d:%d",time.hr,time.min,time.sec);
 				//sendEthPacket(time, sm);
@@ -141,34 +142,43 @@ int main(void)
 					}
 				}
 				//fprintf(stderr, "Sender pakke!\n");
-				sendEthPacket(time, sm);
-			}
-			if(tempSec!=time.sec)
-			{
-				if(!uartReceiveBufferIsEmpty(XBeeUART))
+				
+			
+				while(!uartReceiveBufferIsEmpty(XBeeUART))
 				{
-					fprintf(stderr, "mottar pakke!\n");
+					//fprintf(stderr, "mottar pakke!\n");
 					int i;
 					i=0;
 					signed char XBeePacket[12];
-					while (i<12)
+					while (i<13)
 					{
 						while (uartReceiveBufferIsEmpty(XBeeUART))
 							;;
 						uartReceiveByte(XBeeUART, &XBeePacket[i]);
-						i++;
+						if ((XBeePacket[i]=='$')&&(i!=0))
+							i=0;
+						else if (XBeePacket[0]=='$')
+							i++;
 					}
-					fprintf(stderr, "har mottatt alt!\n");
-					sm[XBeePacket[6]-'0'].temp=XBeePacket[11];
-					if (XBeePacket[9]=='f')
-						sm[XBeePacket[6]-'0'].status=0;
-					else if (XBeePacket[9]=='n')
-						sm[XBeePacket[6]-'0'].status=1;
+					//fprintf(stderr, "har mottatt alt!\n");
+					sm[XBeePacket[7]-'0'].temp=XBeePacket[12];
+					if (XBeePacket[10]=='f')
+						sm[XBeePacket[7]-'0'].status=0;
+					else if (XBeePacket[10]=='n')
+						sm[XBeePacket[7]-'0'].status=1;
+					XBeePacketCounter[XBeePacket[7]-'0']=1;
 				}
+				for (int i=0; i<noOfModules; i++)
+				{		
+					if (!XBeePacketCounter[i])
+						sm[i].status=2;
+					XBeePacketCounter[i]=0;
+				}
+				sendEthPacket(time, sm);
 			}
 		}
 		else(printf("ERROR_klokkefeil"));
-	}	
+	}				
 	return 0;	
 }
 
@@ -177,13 +187,13 @@ void sendSlaveModule(unsigned char number,unsigned char status)
 	switch (status)
 	{
 		case 0:
-			fprintf(stderr,"ROUTER%d_of",number);
+			fprintf(stderr,"$ROUTER%d_of",number);
 			break;
 		case 1:
-			fprintf(stderr,"ROUTER%d_on",number);
+			fprintf(stderr,"$ROUTER%d_on",number);
 			break;
 		case 2:
-			fprintf(stderr,"ROUTER%d_nc",number);
+			fprintf(stderr,"$ROUTER%d_nc",number);
 			break;
 	}
 }

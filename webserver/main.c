@@ -73,7 +73,7 @@ static char strbuf[STR_BUFFER_SIZE+1];
 static char password[10]="secret"; // must not be longer than 9 char
 
 time_t time={21,3,7,3,1,3,9};
-slaveModule sm[noOfModules]={{0,1,5},{0,1,17},{0,1,20}};
+slaveModule sm[noOfModules]={{0,1,50},{0,1,40},{0,1,20}};
 signed char ethPacket [noOfBytes] ={3,9,4,27,13,22,0,0,1,1,15,1,0,0,20};
 
 // 
