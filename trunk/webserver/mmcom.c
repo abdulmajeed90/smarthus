@@ -34,7 +34,13 @@ int checkForEthPacket(signed char* ethPacket)
 		while (i<noOfBytes)
 		{
 			while (uartReceiveBufferIsEmpty())
-				;;
+			{
+				if (stop_mmcomm)
+				{
+					stop_mmcomm=0;
+					return 0;
+				}
+			}
 			uartReceiveByte(&ethPacket[i]);
 			i++;
 		}

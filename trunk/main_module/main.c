@@ -47,21 +47,21 @@ FILE uart0_str = FDEV_SETUP_STREAM(uart0SendByte, NULL, _FDEV_SETUP_WRITE);
 FILE uart1_str = FDEV_SETUP_STREAM(uart1SendByte, uart1GetByte, _FDEV_SETUP_RW);
 
 void sendSlaveModule(unsigned char number,unsigned char status);
+uint8_t mcusr_mirror;
 
+void get_mcusr(void) \
+	__attribute__((naked)) \
+		__attribute__((section(".init3")));
 
-time_t time={3,43,16,3,21,3,8};
+time_t time={3,37,1,3,2,4,9};
 slaveModule sm[noOfModules]={{0,1,-5},{0,0,15},{0,1,20}};
 slaveModule sm_web[noOfModules];
 signed char ethPacket[noOfBytes];
 unsigned char XBeePacketCounter[noOfModules];
 
 int main(void)
-{
-	//CLKPR=0x80;
-	//CLKPR=0x00;
-	//DDRB=0xff; //portB er utgang
-	
-	 
+{	
+	get_mcusr();
     
 	uartInit();
 	uartSetBaudRate(0,BAUD);
@@ -78,10 +78,14 @@ int main(void)
 	ds1307_enable(DS1307_I2C_ADDR);
 	uartFlushReceiveBuffer(EthUART);
 	uartFlushReceiveBuffer(XBeeUART);
-	ds1307_settime(DS1307_I2C_ADDR,time);
+	//ds1307_settime(DS1307_I2C_ADDR,time);
 	unsigned char tempSec;
 	int e=0;
-	_delay_ms(5000);
+	DDRB=0xff;
+	PORTD=0xff;
+	_delay_ms(1000);
+	DDRB=0x00;
+	PORTD=0x00;
 // 	while(e<noOfBytes)
 // 	{
 // 		uart1SendByte(1);
@@ -90,9 +94,11 @@ int main(void)
 // 	}
 	uartFlushReceiveBuffer(EthUART);
 	//_delay_ms(10000);
-	
+	wdt_enable(WDTO_2S);
+	wdt_reset();
 	while(1)
 	{	
+		wdt_reset();
 		//wdt_enable(WDTO_2S);
 		//wdt_reset();
 		
@@ -197,3 +203,9 @@ void sendSlaveModule(unsigned char number,unsigned char status)
 			break;
 	}
 }
+void get_mcusr(void)
+    {
+      mcusr_mirror = MCUSR;
+      MCUSR = 0;
+      wdt_disable();
+    }

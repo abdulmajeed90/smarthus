@@ -66,6 +66,8 @@ typedef struct {
 	u08 yr ;
 } time_t;
 
+extern unsigned char stop_mmcomm;
+
 //! Checks if a packet is ready to be received
 ///
 int checkForEthPacket(signed char* ethPacket);

@@ -75,6 +75,10 @@ static char password[10]="secret"; // must not be longer than 9 char
 time_t time={21,3,7,3,1,3,9};
 slaveModule sm[noOfModules]={{0,1,50},{0,1,40},{0,1,20}};
 signed char ethPacket [noOfBytes] ={3,9,4,27,13,22,0,0,1,1,15,1,0,0,20};
+unsigned char stop_mmcomm=0;
+unsigned char wait_data=1;
+unsigned char last_wait_data=0;
+unsigned char stop_counter=0;
 
 // 
 uint8_t verify_password(char *str)
@@ -405,7 +409,7 @@ uint16_t print_webpage(uint8_t *buf)
                 plen=fill_tcp_data(buf,plen,strbuf);
                 plen=fill_tcp_data_p(buf,plen,PSTR("</font>&deg;C<br>"));
 	}
-	// Check for slave status, 0 = off, 1 = on , 2 = no change
+	// Check for slave status, 0 = off, 1 = on , 2 = not connected
 	plen=fill_tcp_data_p(buf,plen,PSTR("Status: "));
         if (ethPacket[pStatus]==0)
         {
@@ -418,6 +422,11 @@ uint16_t print_webpage(uint8_t *buf)
         {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=green> "));
                 plen=fill_tcp_data_p(buf,plen,PSTR("On</font><br>"));
+        }
+		else if (ethPacket[pStatus]==2)
+        {
+               plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
+                plen=fill_tcp_data_p(buf,plen,PSTR("NC</font><br>"));
         }
 
 	// Room 2 status
@@ -451,6 +460,11 @@ uint16_t print_webpage(uint8_t *buf)
         {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=green> "));
                 plen=fill_tcp_data_p(buf,plen,PSTR("On</font><br>"));
+        }
+		else if (ethPacket[pFieldsModules+pStatus]==2)
+        {
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
+				plen=fill_tcp_data_p(buf,plen,PSTR("NC</font><br>"));
         }
 
         plen=fill_tcp_data_p(buf,plen,PSTR("</div></body></html>"));
@@ -677,6 +691,20 @@ ISR(TIMER1_COMPA_vect){
         if (pingtimer>252){
                 pingtimer=1;
         }
+		
+		if (last_wait_data==wait_data){
+			stop_counter++;
+			if (stop_counter>5)
+			{
+				stop_mmcomm=1;
+				stop_counter=0;
+				
+			}
+			
+		}
+		last_wait_data=wait_data;
+		
+			
 }
 
 
@@ -784,10 +812,14 @@ int main(void){
 			//uartSendByte('a');
 
 			//checkForEthPacket(ethPacket);
+			
 			if (checkForEthPacket(ethPacket))
  			{
 				sendEthPacket(time, sm);
  			}
+			wait_data++;
+			if (wait_data>40)
+				wait_data=0;
 			//_delay_ms(500);
 			// spontanious messages must not interfer with
                 // web pages
