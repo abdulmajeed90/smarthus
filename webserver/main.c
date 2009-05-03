@@ -238,6 +238,9 @@ uint8_t analyse_get_url(char *str)
 	if (strncmp("room2",str,5)==0){
                 return(11);
         }
+	if (strncmp("clk",str,3)==0){
+		return(12);
+	}
 
         // actions reset stop start
 /*        if (strncmp("ack",str,3)==0){
@@ -274,7 +277,28 @@ uint8_t analyse_get_url(char *str)
 
 	// change on / off status on slave-modules
 	if (strncmp("stat",str,4)==0){
-		if (find_key_val(str,"pw")){
+		if (find_key_val(str,"on")){
+			urldecode(strbuf);
+			if (find_key_val(str,"pw")){
+				urldecode(strbuf);
+				if (verify_password(strbuf)){
+					strbuf[2]='\0';
+					return(30);
+				}
+			}
+		}
+		else if (find_key_val(str,"off")){
+			urldecode(strbuf);
+                        if (find_key_val(str,"pw")){
+                                urldecode(strbuf);
+                                if (verify_password(strbuf)){
+                                        strbuf[2]='\0';
+                                        return(31);
+				}
+			}
+		}
+
+		/*if (find_key_val(str,"pw")){
 			urldecode(strbuf);
 			if (verify_password(strbuf)){
 				if (find_key_val(str,"on")){
@@ -288,12 +312,32 @@ uint8_t analyse_get_url(char *str)
 					return(31);
 				}
 			}
-		}
+		}*/
 	}
 
 	// change own ip and pw
         if (strncmp("ipc",str,3)==0){
-                if (find_key_val(str,"pw")){
+		if (find_key_val(str,"pw")){
+			urldecode(strbuf);
+			if (verify_password(strbuf)){
+				if (find_key_val(str,"nip")){
+					urldecode(strbuf);
+					if (parse_ip(myip,strbuf)){
+						errmsg="invalid ip";
+						return(0);
+					}
+					strbuf[7]='\0';
+					return(7);
+				}
+			}
+			if (find_key_val(str,"npw")){
+				urldecode(strbuf);
+				strbuf[7]='\0';
+				strcpy(password,strbuf);
+				return(2);
+			}
+		}
+        	/*if (find_key_val(str,"pw")){
                         urldecode(strbuf);
                         if (verify_password(strbuf)){
                                 if (find_key_val(str,"nip")){
@@ -316,7 +360,7 @@ uint8_t analyse_get_url(char *str)
                                         return(0);
                                 }
                         }
-                }
+                }*/
                 return(0);
         }
         if (strncmp("mod",str,3)==0){
@@ -470,8 +514,6 @@ uint16_t print_webpage(uint8_t *buf)
         if (ethPacket[pStatus]==0)
         {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
-//                itoa(ethPacket[pStatus],strbuf,10);
-//                plen=fill_tcp_data(buf,plen,strbuf);
                 plen=fill_tcp_data_p(buf,plen,PSTR("Off"));
         }
         else if (ethPacket[pStatus]==1)
@@ -479,7 +521,7 @@ uint16_t print_webpage(uint8_t *buf)
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=green> "));
                 plen=fill_tcp_data_p(buf,plen,PSTR("On"));
         }
-		else if (ethPacket[pStatus]==2)
+	else if (ethPacket[pStatus]==2)
         {
                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
                 plen=fill_tcp_data_p(buf,plen,PSTR("NC"));
@@ -494,23 +536,20 @@ uint16_t print_webpage(uint8_t *buf)
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=blue> "));
                 itoa(ethPacket[pFieldsModules+pTemp],strbuf,10);
                 plen=fill_tcp_data(buf,plen,strbuf);
-                plen=fill_tcp_data_p(buf,plen,PSTR("</font> &deg;C<br>"));
         }
-
         else
         {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
 		itoa(ethPacket[pFieldsModules+pTemp],strbuf,10);
                 plen=fill_tcp_data(buf,plen,strbuf);
-                plen=fill_tcp_data_p(buf,plen,PSTR("</font>&deg;C<br>"));
         }
+	plen=fill_tcp_data_p(buf,plen,PSTR("</font> &deg;C<br>"));
+
         // Check for slave status, 0 = off, 1 = on , 2 = no change
         plen=fill_tcp_data_p(buf,plen,PSTR("Status: "));
         if (ethPacket[pFieldsModules+pStatus]==0)
         {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
-//                itoa(ethPacket[pStatus],strbuf,10);
-//                plen=fill_tcp_data(buf,plen,strbuf);
                 plen=fill_tcp_data_p(buf,plen,PSTR("Off</font><br>"));
         }
         else if (ethPacket[pFieldsModules+pStatus]==1)
@@ -518,10 +557,10 @@ uint16_t print_webpage(uint8_t *buf)
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=green> "));
                 plen=fill_tcp_data_p(buf,plen,PSTR("On</font><br>"));
         }
-		else if (ethPacket[pFieldsModules+pStatus]==2)
+	else if (ethPacket[pFieldsModules+pStatus]==2)
         {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
-				plen=fill_tcp_data_p(buf,plen,PSTR("NC</font><br>"));
+		plen=fill_tcp_data_p(buf,plen,PSTR("NC</font><br>"));
         }
 
         plen=fill_tcp_data_p(buf,plen,PSTR("<br><br></div></body></html>"));
@@ -542,7 +581,7 @@ uint16_t print_webpage_room1(uint8_t *buf)
         plen=fill_tcp_data_p(buf,plen,PSTR("<div id=\"content\"><a href=\"/cnf\"><< Tilbake</a><br><br>\n"));
 
 	// Room 1 status
-        plen=fill_tcp_data_p(buf,plen,PSTR("Temperatur naa:  "));
+        plen=fill_tcp_data_p(buf,plen,PSTR("Temperatur nå:  "));
         // Temperatur is blue for lower then 15 degrees, red for higher
         if (ethPacket[pTemp]<=15)
         {
@@ -559,9 +598,19 @@ uint16_t print_webpage_room1(uint8_t *buf)
 	plen=fill_tcp_data_p(buf,plen,PSTR("</font>&deg;C<br>"));
 
 	plen=fill_tcp_data_p(buf,plen,PSTR("Temperatur satt: "));
+        if (sm[0].temp<=15)
+        {
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=blue> "));
 		itoa(sm[0].temp,strbuf,10);
-		plen=fill_tcp_data(buf,plen,strbuf);
-	plen=fill_tcp_data_p(buf,plen,PSTR("&deg;C<br><br>"));
+                plen=fill_tcp_data(buf,plen,strbuf);
+        }
+	else
+        {
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
+                itoa(sm[0].temp,strbuf,10);
+                plen=fill_tcp_data(buf,plen,strbuf);
+        }
+	plen=fill_tcp_data_p(buf,plen,PSTR("</font>&deg;C<br><br>"));
 
 	// Check for slave status, 0 = off, 1 = on , 2 = no change
 	plen=fill_tcp_data_p(buf,plen,PSTR("Status satt til: "));
@@ -578,7 +627,7 @@ uint16_t print_webpage_room1(uint8_t *buf)
         plen=fill_tcp_data_p(buf,plen,PSTR("</font>"));
 
 	plen=fill_tcp_data_p(buf,plen,PSTR("<br>"));
-        plen=fill_tcp_data_p(buf,plen,PSTR("Status naa:  "));
+        plen=fill_tcp_data_p(buf,plen,PSTR("Status nå:  "));
         if (ethPacket[pStatus]==0)
         {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
@@ -597,10 +646,9 @@ uint16_t print_webpage_room1(uint8_t *buf)
 	plen=fill_tcp_data_p(buf,plen,PSTR("</font><br><br>"));
 
 	// Change status
-        plen=fill_tcp_data_p(buf,plen,PSTR("<hr><br><h4>Skift status til:</h4>   "));
-        plen=fill_tcp_data_p(buf,plen,PSTR("<br><form action=\"/stat\" method=get>"));
-	plen=fill_tcp_data_p(buf,plen,PSTR("Passord:<input type=password size=8 name=pw><br>"));
-	plen=fill_tcp_data_p(buf,plen,PSTR("<input type=\"radio\" name=\"onoff\" value=1 "));
+        //plen=fill_tcp_data_p(buf,plen,PSTR("<hr><br><h4>Skift status til:</h4>   "));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<fieldset><legend><h4>Status</h4></legend><form action=\"/stat\" method=get>"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("<br><input type=\"radio\" name=\"onoff\" value=1 "));
 		if (sm[0].status==1)
 			plen=fill_tcp_data_p(buf,plen,PSTR("checked "));
 		plen=fill_tcp_data_p(buf,plen,PSTR(">Slaatt paa<br>"));
@@ -608,16 +656,18 @@ uint16_t print_webpage_room1(uint8_t *buf)
 		if (sm[0].status==0)
 			plen=fill_tcp_data_p(buf,plen,PSTR("checked "));
 		plen=fill_tcp_data_p(buf,plen,PSTR(">Slaatt av<br>"));
-        plen=fill_tcp_data_p(buf,plen,PSTR("<input type=submit value=\"change\"></form><br>"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("Passord:</td><td><input type=password size=8 name=pw><br>"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<input type=submit value=\"Endre\"></form><br></fieldset>"));
 
 	// Set temperatur
-        plen=fill_tcp_data_p(buf,plen,PSTR("<hr><br><h4>Sett til onsket temperatur</h4><br>"));
-
+        //plen=fill_tcp_data_p(buf,plen,PSTR("<hr><br><h4>Sett til onsket temperatur</h4><br>"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("<br><fieldset><legend><h4>Temp</h4></legend>"));
                 plen=fill_tcp_data_p(buf,plen,PSTR("<form action=/tmpc method=get>"));
-                plen=fill_tcp_data_p(buf,plen,PSTR("Passord:<input type=password size=8 name=pw><br>Temperatur: <input type=text size=8 name=ntemp value="));
-
-                plen=fill_tcp_data_p(buf,plen,PSTR("><br><input type=submit value=\"change\"><br>"));
-                plen=fill_tcp_data_p(buf,plen,PSTR("</form><br><br>"));
+		plen=fill_tcp_data_p(buf,plen,PSTR("<br>Ny temp: <input type=text size=3 name=ntemp value="));
+		plen=fill_tcp_data_p(buf,plen,PSTR("><br>"));
+                plen=fill_tcp_data_p(buf,plen,PSTR("Passord:<input type=password size=8 name=pw>"));
+                plen=fill_tcp_data_p(buf,plen,PSTR("<br><input type=submit value=\"Endre\"><br>"));
+		plen=fill_tcp_data_p(buf,plen,PSTR("</form><br></fieldset>"));
 	// end
         plen=fill_tcp_data_p(buf,plen,PSTR("</div></body></html>"));
 
@@ -625,7 +675,7 @@ uint16_t print_webpage_room1(uint8_t *buf)
 }
 
 uint16_t print_webpage_room2(uint8_t *buf)
-	{
+{
         uint16_t plen;
         plen=http200ok();
         plen=fill_tcp_data_p(buf,plen,PSTR("<style type=\"text/css\">* {padding:0;margin:0;} body {font-size:10pt;font-family:\"georgia\";color:#333333;background:#74888e;}\n"));
@@ -633,49 +683,90 @@ uint16_t print_webpage_room2(uint8_t *buf)
         plen=fill_tcp_data_p(buf,plen,PSTR("#headercontent h1 {font-weight:normal;color:#fff;font-size:2.5em;}\n"));
         plen=fill_tcp_data_p(buf,plen,PSTR("#content {padding:2em 2em 0 2em;}\n"));
         plen=fill_tcp_data_p(buf,plen,PSTR("</style></head><body><div id=\"outer\"><div id=\"header\"><div id=\"headercontent\">"));
-
         // Webserver header
-        plen=fill_tcp_data_p(buf,plen,PSTR("<h1>Room 2 Status</h1></div></div>\n"));
-        plen=fill_tcp_data_p(buf,plen,PSTR("<div id=\"content\"><a href=\"/cnf\"><< Tilbake</a><br>\n"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<h1>Rom-1 Status</h1></div></div>\n"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<div id=\"content\"><a href=\"/cnf\"><< Tilbake</a><br><br>\n"));
 
         // Room 2 status
-	plen=fill_tcp_data_p(buf,plen,PSTR("Temp:  "));
-        if ((ethPacket[pFieldsModules+pTemp])<=15)
+        plen=fill_tcp_data_p(buf,plen,PSTR("Temperatur naa:  "));
+        // Temperatur is blue for lower then 15 degrees, red for higher
+        if (ethPacket[pFieldsModules+pTemp]<=15)
         {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=blue> "));
                 itoa(ethPacket[pFieldsModules+pTemp],strbuf,10);
                 plen=fill_tcp_data(buf,plen,strbuf);
-                plen=fill_tcp_data_p(buf,plen,PSTR("</font> &deg;C<br>"));
         }
-
         else
         {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
                 itoa(ethPacket[pFieldsModules+pTemp],strbuf,10);
                 plen=fill_tcp_data(buf,plen,strbuf);
-                plen=fill_tcp_data_p(buf,plen,PSTR("</font>&deg;C<br>"));
         }
+        plen=fill_tcp_data_p(buf,plen,PSTR("</font>&deg;C<br>"));
+
+        plen=fill_tcp_data_p(buf,plen,PSTR("Temperatur satt: "));
+                itoa(sm[0].temp,strbuf,10);
+                plen=fill_tcp_data(buf,plen,strbuf);
+        plen=fill_tcp_data_p(buf,plen,PSTR("&deg;C<br><br>"));
+
         // Check for slave status, 0 = off, 1 = on , 2 = no change
-        plen=fill_tcp_data_p(buf,plen,PSTR("Status:  "));
+        plen=fill_tcp_data_p(buf,plen,PSTR("Status satt til: "));
+        if (sm[0].status==0)
+        {
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
+                plen=fill_tcp_data_p(buf,plen,PSTR("Off"));
+        }
+        else if (sm[0].status==1)
+        {
+                plen=fill_tcp_data_p(buf,plen,PSTR("<font color=green> "));
+                plen=fill_tcp_data_p(buf,plen,PSTR("On"));
+        }
+        plen=fill_tcp_data_p(buf,plen,PSTR("</font>"));
+
+        plen=fill_tcp_data_p(buf,plen,PSTR("<br>"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("Status naa:  "));
         if (ethPacket[pFieldsModules+pStatus]==0)
         {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
-//                itoa(ethPacket[pStatus],strbuf,10);
-//                plen=fill_tcp_data(buf,plen,strbuf);
-                plen=fill_tcp_data_p(buf,plen,PSTR("Off</font><br>"));
+                plen=fill_tcp_data_p(buf,plen,PSTR("Off"));
         }
         else if (ethPacket[pFieldsModules+pStatus]==1)
         {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=green> "));
-                plen=fill_tcp_data_p(buf,plen,PSTR("On</font><br>"));
+                plen=fill_tcp_data_p(buf,plen,PSTR("On"));
         }
                 else if (ethPacket[pFieldsModules+pStatus]==2)
-        {
+                {
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
-                                plen=fill_tcp_data_p(buf,plen,PSTR("NC</font><br>"));
+                plen=fill_tcp_data_p(buf,plen,PSTR("NC"));
         }
+        plen=fill_tcp_data_p(buf,plen,PSTR("</font><br><br>"));
 
+        // Change status
+        plen=fill_tcp_data_p(buf,plen,PSTR("<hr><br><h4>Skift status til:</h4>   "));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<br><form action=\"/stat\" method=get>"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("Passord:<input type=password size=8 name=pw><br>"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<input type=\"radio\" name=\"onoff\" value=1 "));
+                if (sm[0].status==1)
+                        plen=fill_tcp_data_p(buf,plen,PSTR("checked "));
+                plen=fill_tcp_data_p(buf,plen,PSTR(">Slaatt paa<br>"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<input type=\"radio\" name=\"onoff\" value=0 "));
+                if (sm[0].status==0)
+                        plen=fill_tcp_data_p(buf,plen,PSTR("checked "));
+                plen=fill_tcp_data_p(buf,plen,PSTR(">Slaatt av<br>"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<input type=submit value=\"change\"></form><br>"));
+
+        // Set temperatur
+        plen=fill_tcp_data_p(buf,plen,PSTR("<hr><br><h4>Sett til onsket temperatur</h4><br>"));
+
+                plen=fill_tcp_data_p(buf,plen,PSTR("<form action=/tmpc method=get>"));
+                plen=fill_tcp_data_p(buf,plen,PSTR("Passord:<input type=password size=8 name=pw><br>Temperatur: <input type=text size=8 name=ntemp value="));
+
+                plen=fill_tcp_data_p(buf,plen,PSTR("><br><input type=submit value=\"change\"><br>"));
+                plen=fill_tcp_data_p(buf,plen,PSTR("</form><br><br>"));
+        // end
         plen=fill_tcp_data_p(buf,plen,PSTR("</div></body></html>"));
+
         return(plen);
 }
 
@@ -685,43 +776,49 @@ uint16_t print_webpage_config(uint8_t *buf)
         uint16_t plen;
         plen=http200ok();
 
-        plen=fill_tcp_data_p(buf,plen,PSTR("<style type=\"text/css\">* {padding:0;margin:0;} body {font-size:10pt;font-family:\"georgia\";color:#333333;background:#74888e;}\n"));
-	plen=fill_tcp_data_p(buf,plen,PSTR("h5 {font-size:0.7em;} #outer {width:350px;border:2px solid #fff;background-color:#fff;margin:0 auto;} #header {background:#2b2b2b;margin-bottom:2px;}#headercontent {bottom:0;padding:0.7em 1em 0.7em 1em;}\n"));
-	plen=fill_tcp_data_p(buf,plen,PSTR("#headercontent h1 {font-weight:normal;color:#fff;font-size:2.5em;} #menu {position:relative;background:#2b2b2b;height:3.5em;padding:0 1em 0 1em;margin-bottom:2px;} #menu ul {position:absolute;top:1.1em;}\n"));
-	plen=fill_tcp_data_p(buf,plen,PSTR("#menu ul li {display:inline;}#menu ul li a {padding:0.5em 1em 0.9em 1em;color:#fff;} #content {padding:2em 2em 0 2em;}\n"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<style type=\"text/css\">*{padding:0;margin:0;}body{font-size:10pt;font-family:\"georgia\";color:#333333;background:#74888e;}"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("h5{font-size:0.7em;}#outer{width:350px;border:2px solid #fff;background-color:#fff;margin:0 auto;}#header{background:#2b2b2b;margin-bottom:2px;}#headercontent{bottom:0;padding:0.7em 1em 0.7em 1em;}"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("#headercontent h1{font-weight:normal;color:#fff;font-size:2.5em;}#menu{position:relative;background:#2b2b2b;height:3.5em;padding:0 1em 0 1em;margin-bottom:2px;}#menu ul{position:absolute;top:1.1em;}"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("#menu ul li{display:inline;}#menu ul li a{padding:0.5em 1em 0.9em 1em;color:#fff;}#content{padding:2em 2em 0 2em;}"));
 	plen=fill_tcp_data_p(buf,plen,PSTR("</style></head><body><div id=\"outer\"><div id=\"header\"><div id=\"headercontent\">"));
 	// Webserver header
-	plen=fill_tcp_data_p(buf,plen,PSTR("<h1>Kontroll</h1></div></div>\n"));
- 	plen=fill_tcp_data_p(buf,plen,PSTR("<div id=\"menu\"><ul>\n"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("<h1>Kontroll</h1></div></div>"));
+ 	plen=fill_tcp_data_p(buf,plen,PSTR("<div id=\"menu\"><ul>"));
         //the "menu" or links
-        plen=fill_tcp_data_p(buf,plen,PSTR("<li><a href=\"/\">Hoved</a></li>\n"));
-        plen=fill_tcp_data_p(buf,plen,PSTR("<li><a href=\"/room1\">Rom 1</a></li>\n"));
-        plen=fill_tcp_data_p(buf,plen,PSTR("<li><a href=\"/room2\">Rom 2</a></li>\n"));
-        plen=fill_tcp_data_p(buf,plen,PSTR("<li><a href=\"/\">Rom 3</a></li>\n"));
-        plen=fill_tcp_data_p(buf,plen,PSTR("</ul></div><div id=\"menubottom\"></div><div id=\"content\">"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<li><a href=\"/\">Hoved</a></li>"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<li><a href=\"/room1\">Rom-1</a></li>"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<li><a href=\"/room2\">Rom-2</a></li>"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<li><a href=\"/clk\">Klokke</a></li>"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("</ul></div><div id=\"content\">"));
 
-	plen=fill_tcp_data_p(buf,plen,PSTR("<br><h4>Endre Ip-adresse og passord</h4><br>"));
+	// Change the IP
+	plen=fill_tcp_data_p(buf,plen,PSTR("<fieldset><legend><h4>Endre IP</h4></legend>"));
 	plen=fill_tcp_data_p(buf,plen,PSTR("<form action=/ipc method=get>"));
-		plen=fill_tcp_data_p(buf,plen,PSTR("Old pw:<input type=password size=8 name=pw><br>\n"));
-		plen=fill_tcp_data_p(buf,plen,PSTR("New pw: <input type=password size=8 name=npw><br>\n"));
+		plen=fill_tcp_data_p(buf,plen,PSTR("<br>Passord:<input type=password size=8 name=pw><br>"));
+		//plen=fill_tcp_data_p(buf,plen,PSTR("New pw: <input type=password size=8 name=npw><br>\n"));
 		plen=fill_tcp_data_p(buf,plen,PSTR("Ny IP: <input type=text size=12 name=nip value="));
 			mk_net_str(strbuf,myip,4,'.',10);
 			plen=fill_tcp_data(buf,plen,strbuf);
-		plen=fill_tcp_data_p(buf,plen,PSTR("><br>\n"));
-	plen=fill_tcp_data_p(buf,plen,PSTR("<input type=submit value=\"change\"></form><br><br>"));
+		plen=fill_tcp_data_p(buf,plen,PSTR("><br>"));
+	plen=fill_tcp_data_p(buf,plen,PSTR("<input type=submit value=\"OK\"></form><br></fieldset>"));
 
-/*	plen=fill_tcp_data_p(buf,plen,PSTR("<div id=\"content\"><a href=\"/\"><< Tilbake</a><br>\n"));
-	//content
-        plen=fill_tcp_data_p(buf,plen,PSTR("<br><h4>Room status:</h4><br>"));
+	// Change the password
+//        plen=fill_tcp_data_p(buf,plen,PSTR("<h4>Endre passordet</h4><br>"));
+        plen=fill_tcp_data_p(buf,plen,PSTR("<br><fieldset><form action=/ipc method=get>"));
+ 	        plen=fill_tcp_data_p(buf,plen,PSTR("<br>Gammelt passord:<input type=password size=8 name=pw><br>"));
+		plen=fill_tcp_data_p(buf,plen,PSTR("Nytt passord: <input type=password size=8 name=npw><br>"));
+		plen=fill_tcp_data_p(buf,plen,PSTR("<input type=submit value=\"OK\"></form><br></fieldset>"));
 
-        // Room 1 status
-        plen=fill_tcp_data_p(buf,plen,PSTR("<a href=\"/room1\">Check Room 1</a><br><br>"));
-
-	// Room 2 status
-	plen=fill_tcp_data_p(buf,plen,PSTR("<a href=\"/room2\">Check Room 2</a>"));*/
         return(plen);
 }
 
+uint16_t print_webpage_clk(uint8_t *buf)
+{
+        uint16_t plen;
+        plen=http200ok();
+	plen=fill_tcp_data_p(buf,plen,PSTR("<h2>Actions</h2>"));
+	return(plen);
+}
 uint16_t print_webpage_now(uint8_t *buf)
 {
         uint16_t plen;
@@ -1113,6 +1210,9 @@ int main(void){
                                 if (cmd==11){
                                         plen=print_webpage_room2(buf);
                                 }
+				if (cmd==12){
+					plen=print_webpage_clk(buf);
+				}
 
                                 //
 SENDTCP:
