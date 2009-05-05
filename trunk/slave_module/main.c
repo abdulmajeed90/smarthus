@@ -30,7 +30,7 @@ int i=0;
 signed char temp;
 int counter=0;
 char buffer1[11];
-char name[10];//="$ROUTER0";
+char name[10];//="~ROUTER0";
 FILE uart_str = FDEV_SETUP_STREAM(uartSendByte, uartGetByte, _FDEV_SETUP_RW);
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -84,7 +84,7 @@ void readtobuffer(void)
 		;;
 	if (uartReceiveByte(&buffer1[counter]))
 	{
-		if(buffer1[0]=='$')
+		if(buffer1[0]=='~')
 		{
 			counter++;
 			
@@ -198,7 +198,7 @@ void XBeeGetName(void)
 	// Receive the name
 	while(i!=20)
 	{
-		name[0]='$';
+		name[0]='~';
 		if (uartReceiveByte(&name[i]))
 		{
 			if (name[i]=='\r')
