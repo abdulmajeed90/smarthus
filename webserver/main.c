@@ -715,7 +715,7 @@ uint16_t print_webpage_room1(uint8_t *buf)
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=green> "));
                 plen=fill_tcp_data_p(buf,plen,PSTR("On"));
         }
-		else if (ethPacket[pFieldsModules+pStatus]==2)
+		else if (ethPacket[pStatus]==2)
         	{
                 plen=fill_tcp_data_p(buf,plen,PSTR("<font color=red> "));
 		plen=fill_tcp_data_p(buf,plen,PSTR("NC"));
