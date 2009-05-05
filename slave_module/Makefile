@@ -5,7 +5,7 @@
 # (GNU make, BSD make, SysV make)
 
 
-MCU = atmega88
+MCU = atmega168
 FORMAT = ihex
 TARGET = main
 SRC = $(TARGET).c
