@@ -106,9 +106,10 @@ int main(void)
 						uartReceiveByte(XBeeUART, &XBeePacket[i]);
 						if ((XBeePacket[i]=='~')&&(i!=0))
 							i=0;
-						else if (XBeePacket[0]=='~')
+						if (XBeePacket[0]=='~')
 							i++;
-					}					sm[XBeePacket[7]-'0'].temp=XBeePacket[12]-7;
+					}					
+					sm[XBeePacket[7]-'0'].temp=XBeePacket[12]-7;
 					if (XBeePacket[10]=='f')
 						sm[XBeePacket[7]-'0'].status=0;
 					else if (XBeePacket[10]=='n')
