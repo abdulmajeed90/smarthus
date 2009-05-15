@@ -66,8 +66,9 @@ unsigned char XBeePacketCounter[noOfModules];
 
 int main(void)
 {	
+	unsigned char tempSec;
 	get_mcusr(); // Disable the watchdog timer
-    uartInit(); // Init both UARTs
+	uartInit(); // Init both UARTs
 	uartSetBaudRate(0,BAUD);
 	uartSetBaudRate(1,BAUD);
 	stdout = stdin = &uart1_str; // Init the stdout and stdin (printf, scanf...) functions
@@ -75,30 +76,51 @@ int main(void)
 	i2cInit();
 	i2cSetBitrate(100);	
 	ds1307_enable(DS1307_I2C_ADDR); // Enable the DS1307 RTC
+	// Make a flash on LEDs connected to PORTB when starting / restarting
+	DDRB=0xff; // PORTB output
+	PORTB=0xff; // All bits on port B = 1 
+	_delay_ms(1000); // Wait until XBee modem has started
+	PORTB=0x00; // All bits on port B = 0
 	// Empty the receive buffer of both UARTs
 	uartFlushReceiveBuffer(EthUART);
 	uartFlushReceiveBuffer(XBeeUART);
-	//ds1307_settime(DS1307_I2C_ADDR,time);
-	unsigned char tempSec;
-	int e=0;
-	DDRB=0xff;
-	PORTB=0xff;
-	_delay_ms(1000);
-	DDRB=0x00;
-	PORTB=0x00;
-	uartFlushReceiveBuffer(EthUART);
-	wdt_enable(WDTO_2S);
+	wdt_enable(WDTO_2S); // Enable watchdog, reset after 2 seconds
 	wdt_reset();
 	while(1)
 	{	
-		wdt_reset();		
+		wdt_reset(); // Reset the watchdog timer		
 		tempSec=time.sec;
 		if(ds1307_gettime(DS1307_I2C_ADDR, &time))
 		{	//if(tempSec!=time.sec)	
-			if((time.sec%2==0)&&(tempSec!=time.sec))
+			if((time.sec%2==0)&&(tempSec!=time.sec)) // True every second second
 			{
-				//printf("\n\rTime:%d:%d:%d",time.hr,time.min,time.sec);
-				//sendEthPacket(time, sm);
+				while(!uartReceiveBufferIsEmpty(XBeeUART))
+				{
+					int i;
+					i=0;
+					signed char XBeePacket[12];
+					while (i<13)
+					{
+						while (uartReceiveBufferIsEmpty(XBeeUART))
+							;;
+						uartReceiveByte(XBeeUART, &XBeePacket[i]);
+						if ((XBeePacket[i]=='~')&&(i!=0))
+							i=0;
+						else if (XBeePacket[0]=='~')
+							i++;
+					}					sm[XBeePacket[7]-'0'].temp=XBeePacket[12]-7;
+					if (XBeePacket[10]=='f')
+						sm[XBeePacket[7]-'0'].status=0;
+					else if (XBeePacket[10]=='n')
+						sm[XBeePacket[7]-'0'].status=1;
+					XBeePacketCounter[XBeePacket[7]-'0']=1;
+				}
+				for (int i=0; i<noOfModules; i++)
+				{		
+					if (!XBeePacketCounter[i])
+						sm[i].status=2;
+					XBeePacketCounter[i]=0;
+				}
 				if (checkForEthPacket(ethPacket))
 				{
 					if (ethPacket[pHour]<24)//edit)
@@ -135,39 +157,9 @@ int main(void)
 						number++;
 					}
 				}
-				//fprintf(stderr, "Sender pakke!\n");
 				
 			
-				while(!uartReceiveBufferIsEmpty(XBeeUART))
-				{
-					//fprintf(stderr, "mottar pakke!\n");
-					int i;
-					i=0;
-					signed char XBeePacket[12];
-					while (i<13)
-					{
-						while (uartReceiveBufferIsEmpty(XBeeUART))
-							;;
-						uartReceiveByte(XBeeUART, &XBeePacket[i]);
-						if ((XBeePacket[i]=='~')&&(i!=0))
-							i=0;
-						else if (XBeePacket[0]=='~')
-							i++;
-					}
-					//fprintf(stderr, "har mottatt alt!\n");
-					sm[XBeePacket[7]-'0'].temp=XBeePacket[12]-7;
-					if (XBeePacket[10]=='f')
-						sm[XBeePacket[7]-'0'].status=0;
-					else if (XBeePacket[10]=='n')
-						sm[XBeePacket[7]-'0'].status=1;
-					XBeePacketCounter[XBeePacket[7]-'0']=1;
-				}
-				for (int i=0; i<noOfModules; i++)
-				{		
-					if (!XBeePacketCounter[i])
-						sm[i].status=2;
-					XBeePacketCounter[i]=0;
-				}
+				
 				sendEthPacket(time, sm);
 			}
 		}

@@ -66,7 +66,7 @@ typedef struct {
 	u08 yr ;
 } time_t;
 
-extern unsigned char stop_mmcomm;
+extern unsigned char timer_flag;
 
 //! Checks if a packet is ready to be received
 ///

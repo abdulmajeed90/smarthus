@@ -35,9 +35,9 @@ int checkForEthPacket(signed char* ethPacket)
 		{
 			while (uartReceiveBufferIsEmpty())
 			{
-				if (stop_mmcomm)
+				if (timer_flag)
 				{
-					stop_mmcomm=0;
+					timer_flag=0;
 					return 0;
 				}
 			}
