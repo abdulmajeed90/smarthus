@@ -41,7 +41,7 @@ int checkForEthPacket(signed char* ethPacket)
 		}
 		return 1;
 	}
-	else 
+	else
 		return 0;
 }
 void sendEthPacket(time_t time, slaveModule* sm)

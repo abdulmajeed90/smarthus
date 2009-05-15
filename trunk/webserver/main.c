@@ -75,10 +75,14 @@ static char password[10]="secret"; // must not be longer than 9 char
 time_t time={99,99,99,99,99,99,99};
 slaveModule sm[noOfModules]={{0,1,50},{0,1,40},{0,1,20}};
 signed char ethPacket [noOfBytes] ={3,9,4,27,13,22,0,0,1,1,15,1,0,0,20};
-unsigned char stop_mmcomm=0;
-unsigned char wait_data=1;
-unsigned char last_wait_data=0;
-unsigned char stop_counter=0;
+
+unsigned char stop_timer=0;
+unsigned char timer_flag=0;
+
+// unsigned char stop_mmcomm=0;
+// unsigned char wait_data=1;
+// unsigned char last_wait_data=0;
+// unsigned char stop_counter=0;
 
 // 
 uint8_t verify_password(char *str)
@@ -1114,18 +1118,24 @@ ISR(TIMER1_COMPA_vect){
                 pingtimer=1;
         }
 		
-		if (last_wait_data==wait_data){
-			stop_counter++;
-			if (stop_counter>5)
-			{
-				stop_mmcomm=1;
-				stop_counter=0;
-				
-			}
-			
+// 		if (last_wait_data==wait_data){
+// 			stop_counter++;
+// 			if (stop_counter>5)
+// 			{
+// 				stop_mmcomm=1;
+// 				stop_counter=0;
+// 				
+// 			}
+// 			
+// 		}
+// 		last_wait_data=wait_data;
+
+		if (stop_timer!=0)
+		{
+			stop_timer--;
+			if (stop_timer==0)
+				timer_flag=1;
 		}
-		last_wait_data=wait_data;
-		
 			
 }
 
@@ -1234,14 +1244,16 @@ int main(void){
 			//uartSendByte('a');
 
 			//checkForEthPacket(ethPacket);
+			stop_timer=2;
 			if (checkForEthPacket(ethPacket))
  			{
 				sendEthPacket(time, sm);
 				time.hr = 99;
  			}
-			wait_data++;
-			if (wait_data>40)
-				wait_data=0;
+			stop_timer=0;
+// 			wait_data++;
+// 			if (wait_data>40)
+// 				wait_data=0;
 			//_delay_ms(500);
 			// spontanious messages must not interfer with
                 // web pages
