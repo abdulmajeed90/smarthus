@@ -51,7 +51,7 @@
 #define pModuleStart 7 ///< First byte that is different for each module
 #define pLastField 10 ///< The last field/byte in the packet
 #define pFieldsModules 4 ///< Number of fields/bytes in one module = pLastField-pModuleStart+1
-#define noOfModules 3
+#define noOfModules 2
 #define noOfBytes (pModuleStart+((1+pLastField-pModuleStart)*noOfModules))
 
 /// Slave_module structure
