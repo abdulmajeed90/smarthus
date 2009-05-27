@@ -1,7 +1,7 @@
 /**
  * \file
  * \author  Jon Ove Storhaug <jostorha@gmail.com>
-  * \author  Asbjørn Tveito
+ * \author  Asbjørn Tveito <atveito@gmail.com>
  * \version 1.0
  * \brief Slave Module 
  *
@@ -20,7 +20,9 @@
  *
  * \section DESCRIPTION
  *
- * This file is used for 
+ * This file is the main program for the Slave Module. It gets data from 
+ * the Main Module, turn a relay on or off, read a DS1621 (DS1631) digital 
+ * temperature and sends data back to the Main Module.
  */
 #include <stdlib.h>
 #include <avr/io.h>
@@ -33,16 +35,39 @@
 #include <string.h>
 #include <stdio.h>
 #include <avr/wdt.h>
+
 #define BAUD 9600
 
+//! Disables the watchdog timer
+///
 void get_mcusr(void) \
       __attribute__((naked)) \
       __attribute__((section(".init3")));
+
+//! Compare name in received data with the name of this slave module,
+/// read status in the received data, read temperature from sencor. 
+/// Send data to Main Module
+///
 void compare(void);
+
+//! Send data with name, status and temperature to Main Module
+///
 void sendPacket(void);
+
+//! Read and save data from the Main Module to a buffer
+///
 void readtobuffer(void);
+
+//! Get name from XBee modem
+///
 void XBeeGetName(void);
+
+//! Init the temperature sencor, DS1621 or DS1631
+///
 void ds1631init(void);
+
+//! Read the temperature sencor
+///
 void ds1631getTemp(void);
 
 uint8_t mcusr_mirror;
@@ -58,7 +83,7 @@ int main(void)
 	get_mcusr();
 	CLKPR=0x80;
 	CLKPR=0x00;
-	DDRB=0xff; //portB er utgang
+	DDRB=0xff; //PORTB is output
     uartInit();
 	uartSetBaudRate(BAUD);
 	stdout = stdin = &uart_str;
@@ -84,8 +109,7 @@ void readtobuffer(void)
 	{
 		if(buffer1[0]=='~')
 		{
-			counter++;
-			
+			counter++;			
 			if (counter>=11)
 			{
 				counter=0;
@@ -93,13 +117,10 @@ void readtobuffer(void)
 			}
 		}
 	}
-
-
 }
 	
 void compare(void)
 {
-
 	if (strncmp(buffer1,name,8)==0)
 	{
 		if((buffer1[9]=='o')&&(buffer1[10]=='n'))
@@ -118,9 +139,7 @@ void compare(void)
 		{
 			ds1631getTemp();
 			sendPacket();
-		}
-		
-            
+		}            
 	}
 }
 
@@ -182,8 +201,6 @@ void ds1631init(void)
 	ds1631SetTL(DS1631_I2C_ADDR, 30<<8);	
 }
 
-
-
 void ds1631getTemp(void)
 {
 	s16 T=0;	
@@ -193,10 +210,9 @@ void ds1631getTemp(void)
 	while(!(ds1631GetConfig(DS1631_I2C_ADDR) & DS1631_CONFIG_DONE));
 	// Read temp
 	T = ds1631ReadTemp(DS1631_I2C_ADDR);
-	// Insert the formatted temperature reading in the string temp 
-	temp=T>>8;
-	//sprintf(temp,"%d.%d", T>>8, (10*((T&0x00FF)))/256);
+	temp=T>>8; // The temperature is saved to temp, no decimals, just the integer
 }
+
 void get_mcusr(void)
     {
       mcusr_mirror = MCUSR;

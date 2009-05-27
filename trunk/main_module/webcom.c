@@ -2,7 +2,7 @@
  * \file webcom.c
  * \author  Jon Ove Storhaug <jostorha@gmail.com>
  * \version 1.0
- * \brief Serial communication between Webserver and Main Module 
+ * \brief Serial communication between Webserver and Main Module for the Main Module 
  *
  * \section LICENSE
  *
@@ -20,10 +20,9 @@
  * \section DESCRIPTION
  *
  * This file is used for sending and receiving packets to and from the Webserver
- * and the main module
+ * and the main module. This file is for the Main Module
  */
 #include "webcom.h"
-
 
 int checkForEthPacket(signed char* ethPacket)
 {

@@ -2,7 +2,7 @@
  * \file mmcom.h
  * \author  Jon Ove Storhaug <jostorha@gmail.com>
  * \version 1.0
- * \brief Serial communication between Webserver and Main Module 
+ * \brief Serial communication between Webserver and Main Module for the Webserver
  *
  * \section LICENSE
  *
@@ -20,7 +20,7 @@
  * \section DESCRIPTION
  *
  * This file is used for sending and receiving packets to and from the Webserver
- * and the main module
+ * and the main module. This file is for the Webserver
  */
 
 #ifndef MMCOM_H_
@@ -35,13 +35,13 @@
 #define pHour 4 
 #define pMin 5
 #define pSec 6
-#define pNumber 7 
-#define pType 8
-#define pStatus 9
-#define pTemp 10
+#define pNumber 7 ///< The current slave modules number
+#define pType 8 ///< Type of slave module, 0=Heat
+#define pStatus 9 ///< Status of slave module, 0=off, 1=on, 2=no change if sent to slave module or not connected when sent to webserver
+#define pTemp 10 ///< The temperature
 
 #define pModuleStart 7 ///<First byte that is different for each module
-#define pLastField 10
+#define pLastField 10 ///< The last field/byte in the packet
 #define pFieldsModules 4 ///<Number of fields in one module = pLastField-pModuleStart+1
 #define noOfModules 2
 #define noOfBytes (pModuleStart+((1+pLastField-pModuleStart)*noOfModules))
@@ -69,11 +69,14 @@ typedef struct {
 extern unsigned char timer_flag;
 
 //! Checks if a packet is ready to be received
+//! \param ethPacket The received packet
+//! \return True if a packet is received, false if not.
 ///
 int checkForEthPacket(signed char* ethPacket);
 
-//! Send a packet
+//! Send a packet to the main module
 //! \param time The actual time the packet is sent (sec, min, hr, dat, mon, yr)
+//! \param sm The slave modules (type, status, temp)
 ///
 void sendEthPacket(time_t time, slaveModule* sm);
 

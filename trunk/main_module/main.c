@@ -39,10 +39,6 @@
 #define XBeeUART 0
 #define EthUART 1
 
-
-
-
-
 FILE uart0_str = FDEV_SETUP_STREAM(uart0SendByte, NULL, _FDEV_SETUP_WRITE);
 FILE uart1_str = FDEV_SETUP_STREAM(uart1SendByte, uart1GetByte, _FDEV_SETUP_RW);
 //! Sends data to Slave Module
@@ -92,39 +88,45 @@ int main(void)
 		tempSec=time.sec;
 		if(ds1307_gettime(DS1307_I2C_ADDR, &time))
 		{	//if(tempSec!=time.sec)	
-			if((time.sec%2==0)&&(tempSec!=time.sec)) // True every second second
+			if((time.sec%2==0)&&(tempSec!=time.sec)) // True every 2nd second
 			{
 				while(!uartReceiveBufferIsEmpty(XBeeUART))
 				{
 					int i;
 					i=0;
 					signed char XBeePacket[12];
+					// Read data from slave module 
 					while (i<13)
 					{
 						while (uartReceiveBufferIsEmpty(XBeeUART))
 							;;
+						// Syncronization
 						uartReceiveByte(XBeeUART, &XBeePacket[i]);
-						if ((XBeePacket[i]=='~')&&(i!=0))
+						if (XBeePacket[i]=='~') // Counter is set to 0 if the current character is '~'
 							i=0;
-						if (XBeePacket[0]=='~')
+						if (XBeePacket[0]=='~') //Increment if the first character in received data is '~'
 							i++;
 					}					
-					sm[XBeePacket[7]-'0'].temp=XBeePacket[12]-7;
+					sm[XBeePacket[7]-'0'].temp=XBeePacket[12]-7; // Compensate for heat from components in slave module
+					// Check status of slave module and make status ready to send to webserver
 					if (XBeePacket[10]=='f')
 						sm[XBeePacket[7]-'0'].status=0;
 					else if (XBeePacket[10]=='n')
 						sm[XBeePacket[7]-'0'].status=1;
-					XBeePacketCounter[XBeePacket[7]-'0']=1;
+					XBeePacketCounter[XBeePacket[7]-'0']=1; // Set packet counter for this slave module to 1
 				}
+				// Check packet counter of all modules, if false: status=2 is sent to the webserver
+				// Webserver will then now which modules that are unconnected
 				for (int i=0; i<noOfModules; i++)
 				{		
 					if (!XBeePacketCounter[i])
 						sm[i].status=2;
 					XBeePacketCounter[i]=0;
 				}
+				// Receive data from webserver
 				if (checkForEthPacket(ethPacket))
 				{
-					if (ethPacket[pHour]<24)//edit)
+					if (ethPacket[pHour]<24)// edit time 
 					{
 						time.yr=ethPacket[pYear];
 						time.mon=ethPacket[pMonth];
@@ -142,33 +144,30 @@ int main(void)
 						switch (sm_web[number].type)
 						{
 							case 0:
-								if (sm_web[number].status==0)
-									sendSlaveModule(number,0);
+								if (sm_web[number].status==0) // Check if the current slave module is disabled on the website
+									sendSlaveModule(number,0); // Send data to slave module: turn off relay
 								else
 								{
-									if ((sm[number].temp)<(sm_web[number].temp-1))
-										sendSlaveModule(number,1);
-									else if ((sm[number].temp)>(sm_web[number].temp+1))
-										sendSlaveModule(number,0);
+									if ((sm[number].temp)<(sm_web[number].temp-1)) // Measured temperature < wanted temperature - 1 ?
+										sendSlaveModule(number,1); // Send data to slave module: turn on relay
+									else if ((sm[number].temp)>(sm_web[number].temp+1)) // Measured temperature > wanted temperature + 1 ?
+										sendSlaveModule(number,0); // Send data to slave module: turn off relay
 									else 
-										sendSlaveModule(number,2);
+										sendSlaveModule(number,2); // Send data to slave module
 								}
 								break;
 						}
-						number++;
+						number++; // next slave module
 					}
-				}
-				
-			
-				
-				sendEthPacket(time, sm);
+				}				
+				sendEthPacket(time, sm); // send packet with data to webserver
 			}
 		}
-		//else(printf("ERROR_klokkefeil"));
 	}				
 	return 0;	
 }
 
+// Sends data to the slave modules
 void sendSlaveModule(unsigned char number,unsigned char status)
 {
 	switch (status)
@@ -184,6 +183,8 @@ void sendSlaveModule(unsigned char number,unsigned char status)
 			break;
 	}
 }
+
+// Disables the watchdog timer
 void get_mcusr(void)
     {
       mcusr_mirror = MCUSR;
